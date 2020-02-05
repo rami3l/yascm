@@ -1,0 +1,23 @@
+cabal-version: >=1.10
+name: yascm
+version: 0.1.0.0
+license: BSD3
+license-file: LICENSE
+copyright: 2020 Author name here
+maintainer: example@example.com
+author: Author name here
+homepage: https://github.com/githubuser/yascm#readme
+category: Web
+build-type: Simple
+extra-source-files:
+    README.md
+
+executable yascm
+    main-is: Main.hs
+    hs-source-dirs: src
+    default-language: Haskell2010
+    build-depends:
+        base >=4.7 && <5,
+        containers -any,
+        mtl -any
+    other-modules: EvalApply, Types
