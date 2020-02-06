@@ -19,5 +19,6 @@ executable yascm
     build-depends:
         base >=4.7 && <5,
         containers -any,
-        mtl -any
-    other-modules: EvalApply, Types
+        mtl -any,
+        parsec -any
+    other-modules: EvalApply, Types, Parser, Repl, ScmPrelude

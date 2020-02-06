@@ -1,6 +1,7 @@
 module Types
     ( Exp(..)
     , ScmPrimitive(..)
+    , makePrim
     , ScmClosure(..)
     , ScmErr(..)
     , Env(..)
@@ -24,6 +25,9 @@ newtype ScmPrimitive = ScmPrimitive ([Exp] -> Either ScmErr Exp)
 
 instance Show ScmPrimitive where
     show prim = "<Primitive>"
+
+makePrim :: ([Exp] -> Either ScmErr Exp) -> Exp
+makePrim = Primitive . ScmPrimitive
 
 data ScmClosure = ScmClosure {
     body :: Exp,

@@ -19,6 +19,7 @@ handleLambda exp xs = state $ \env ->
                                 let (Right y, env') = runState (eval x) env
                                 in  (ys ++ [y], env')
                                 -- ! Dangerous! ys ++ [y] is slow!
+                                -- * Maybe we can use a DiffList
                 in  (apply func args, finalEnv)
 
 eval :: Exp -> State Env (Either ScmErr Exp)
@@ -28,7 +29,7 @@ eval (Symbol s) = state $ \env -> case Types.lookup s env of
     Just def -> (Right def, env)
     Nothing  -> (Left $ ScmErr $ "eval: Symbol \"" ++ s ++ "\" undefined.", env)
 
-eval (List []) = state $ \env -> (Left $ ScmErr $ "eval: got empty List", env)
+eval (List []) = return (Left $ ScmErr $ "eval: got empty List")
 
 eval (List ((List lambda) : xs)) = handleLambda (List lambda) xs
 
@@ -61,7 +62,7 @@ eval (List ((Symbol "set!") : xs)) = state $ \env -> case xs of
                     let (Env d o) = env'
                         env''     = setValue sym def env'
                     in  (Right Empty, env'')
-    _ -> (Left $ ScmErr $ "define: nothing to define", env)
+    _ -> (Left $ ScmErr $ "set!: nothing to set", env)
 
 eval (List [(Symbol "if"), cond, then_, else_]) = do
     mevalCond <- eval cond
@@ -94,16 +95,18 @@ eval (List ((Symbol "begin") : t)) = state
 
 eval (List ((Symbol f) : t)) = handleLambda (Symbol f) t
 
+eval _                       = return (Left $ ScmErr "eval: unexpected Exp")
+
 apply :: Exp -> [Exp] -> Either ScmErr Exp
 -- func can only be Primitive or Closure
 apply (Primitive (ScmPrimitive prim)) args = prim args
 apply (Closure (ScmClosure body env)) args =
-    let (List (List (vars) : def)) = body
+    let
+        (List (List (vars) : def)) = body
         (Env d o                 ) = env
         d'                         = foldl seedGen d (zip vars args)
-              where
-                seedGen seed (var, arg) =
-                    let (Symbol svar) = var in Map.insert svar arg seed
+            where seedGen seed ((Symbol var), arg) = Map.insert var arg seed
         localEnv         = Env d' o
         (res, localEnv') = runState (eval (List def)) localEnv
-    in  res
+    in
+        res
