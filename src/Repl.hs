@@ -8,13 +8,17 @@ import qualified Parser                        as P
 import qualified EvalApply                     as E
 import qualified ScmPrelude                    as Scm
 import           Control.Monad.State
+import           System.Console.Haskeline
 
-repl env = do
-    putStr "> "
-    line <- getLine
-    case P.run line of
-        Right exp ->
-            let (val, env') = runState (E.eval exp) env
-            in  print val >> repl env'
-        Left e -> print e >> repl env
-
+repl env = runInputT defaultSettings (loop env)
+  where
+    loop :: T.Env -> InputT IO ()
+    loop env = do
+        mline <- getInputLine ">> "
+        case mline of
+            Nothing   -> loop env
+            Just line -> case P.run line of
+                Right exp ->
+                    let (val, env') = runState (E.eval exp) env
+                    in  outputStrLn ("=> " ++ show val) >> loop env'
+                Left e -> outputStrLn (show e) >> loop env

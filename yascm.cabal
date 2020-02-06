@@ -20,5 +20,6 @@ executable yascm
         base >=4.7 && <5,
         containers -any,
         mtl -any,
-        parsec -any
+        parsec -any,
+        haskeline -any
     other-modules: EvalApply, Types, Parser, Repl, ScmPrelude

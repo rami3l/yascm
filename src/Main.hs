@@ -1,5 +1,6 @@
 module Main where
+import qualified ScmPrelude                    as Scm
+import           Repl
 
 main :: IO ()
-main = do
-    putStrLn "hello world"
+main = repl Scm.prelude
