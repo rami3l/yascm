@@ -1,0 +1,36 @@
+name: yascm
+
+version: 0.1.0.0
+
+ghc-options: -Wall
+
+dependencies:
+  - base
+  - containers
+  - mtl
+  - parsec
+  - haskeline
+
+executables:
+  yascm-exe:
+    main: Main.hs
+    source-dirs: app/
+    dependencies:
+      yascm
+
+library:
+  source-dirs: src/
+  exposed-modules:
+    - EvalApply
+    - Parser
+    - Repl
+    - ScmPrelude
+    - Types
+
+tests:
+  yascm-test:
+    main: Spec.hs
+    source-dirs: test/ 
+    dependencies:
+      - yascm
+      - hspec

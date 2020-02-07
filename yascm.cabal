@@ -1,25 +1,67 @@
-cabal-version: >=1.10
-name: yascm
-version: 0.1.0.0
-license: BSD3
-license-file: LICENSE
-copyright: 2020 Author name here
-maintainer: example@example.com
-author: Author name here
-homepage: https://github.com/githubuser/yascm#readme
-category: Web
-build-type: Simple
-extra-source-files:
-    README.md
+cabal-version: 1.12
 
-executable yascm
-    main-is: Main.hs
-    hs-source-dirs: src
-    default-language: Haskell2010
+-- This file has been generated from package.yaml by hpack version 0.31.2.
+--
+-- see: https://github.com/sol/hpack
+--
+-- hash: c3747d42ad18b8afe65a40ef0b861b344a679f939b5c76983c9080623823267d
+
+name:           yascm
+version:        0.1.0.0
+license:        BSD3
+license-file:   LICENSE
+build-type:     Simple
+
+library
+    exposed-modules:
+        EvalApply
+        Parser
+        Repl
+        ScmPrelude
+        Types
+    other-modules:
+        Paths_yascm
+    hs-source-dirs:
+        src/
+    ghc-options: -Wall
     build-depends:
-        base >=4.7 && <5,
-        containers -any,
-        mtl -any,
-        parsec -any,
-        haskeline -any
-    other-modules: EvalApply, Types, Parser, Repl, ScmPrelude
+        base,
+        containers,
+        haskeline,
+        mtl,
+        parsec
+    default-language: Haskell2010
+
+executable yascm-exe
+    main-is: Main.hs
+    other-modules:
+        Paths_yascm
+    hs-source-dirs:
+        app/
+    ghc-options: -Wall
+    build-depends:
+        base,
+        containers,
+        haskeline,
+        mtl,
+        parsec,
+        yascm
+    default-language: Haskell2010
+
+test-suite yascm-test
+    type: exitcode-stdio-1.0
+    main-is: Spec.hs
+    other-modules:
+        Paths_yascm
+    hs-source-dirs:
+        test/
+    ghc-options: -Wall
+    build-depends:
+        base,
+        containers,
+        haskeline,
+        hspec,
+        mtl,
+        parsec,
+        yascm
+    default-language: Haskell2010
