@@ -102,11 +102,13 @@ apply :: Exp -> [Exp] -> Either ScmErr Exp
 apply (Primitive (ScmPrimitive prim)) args = prim args
 apply (Closure (ScmClosure body env)) args =
     let
-        (List (List (vars) : def)) = body
-        (Env d o                 ) = env
-        d'                         = foldl seedGen d (zip vars args)
+        (List (List (vars) : defs)) = body
+        (Env d o                  ) = env
+        d'                          = foldl seedGen d (zip vars args)
             where seedGen seed ((Symbol var), arg) = Map.insert var arg seed
-        localEnv         = Env d' o
-        (res, localEnv') = runState (eval (List def)) localEnv
+        localEnv = Env d' o
+        (res, localEnv') =
+            runState ((forM (init defs) eval) >> (eval (last defs))) localEnv
     in
         res
+
