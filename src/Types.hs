@@ -19,7 +19,15 @@ data Exp = Boolean Bool
          | Closure ScmClosure
          | Primitive ScmPrimitive
          | Empty
-         deriving (Show)
+
+instance Show Exp where
+    show (Boolean   b) = show b
+    show (Symbol    s) = s
+    show (Number    n) = show n
+    show (List      l) = show l
+    show (Closure   c) = show c
+    show (Primitive p) = show p
+    show Empty         = ""
 
 newtype ScmPrimitive = ScmPrimitive ([Exp] -> Either ScmErr Exp)
 
