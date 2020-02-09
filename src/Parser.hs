@@ -16,8 +16,9 @@ symbol = do
 
 number :: Parser T.Exp
 number = do
-    xs <- many1 (digit <|> oneOf ".-")
-    let res = read xs
+    x  <- digit <|> oneOf ".-"
+    xs <- many (digit <|> oneOf ".e-")
+    let res = read (x : xs)
     return $ T.Number res
 
 atom :: Parser T.Exp
@@ -27,18 +28,16 @@ regList :: Parser T.Exp
 regList = do
     char '(' >> skipMany space
     res <- sepEndBy expression (many1 space)
-    char ')'
+    _   <- char ')'
     return $ T.List res
 
 dottedList :: Parser T.Exp
 dottedList = do
-    char '('
-    skipMany space
+    char '(' >> skipMany space
     x <- expression
     skipMany1 space >> char '.' >> skipMany1 space
     y <- expression
-    skipMany space
-    char ')'
+    _ <- skipMany space >> char ')'
     return $ T.List [x, y]
 
 list :: Parser T.Exp
@@ -46,14 +45,14 @@ list = try dottedList <|> regList
 
 quoted :: Parser T.Exp
 quoted = do
-    char '\''
+    _ <- char '\''
     r <- expression
     return $ T.List [T.Symbol "quote", r]
 
 comment :: Parser ()
 comment = do
-    char ';'
-    manyTill anyChar newline
+    _ <- char ';'
+    _ <- manyTill anyChar newline
     spaces
     return ()
 
