@@ -16,7 +16,7 @@ symbol = do
 
 number :: Parser T.Exp
 number = do
-    xs <- many1 (digit <|> char '.')
+    xs <- many1 (digit <|> oneOf ".-")
     let res = read xs
     return $ T.Number res
 
@@ -26,7 +26,7 @@ atom = number <|> symbol
 regList :: Parser T.Exp
 regList = do
     char '(' >> skipMany space
-    res <- sepBy expression (many1 space)
+    res <- sepEndBy expression (many1 space)
     char ')'
     return $ T.List res
 
@@ -50,8 +50,17 @@ quoted = do
     r <- expression
     return $ T.List [T.Symbol "quote", r]
 
+comment :: Parser ()
+comment = do
+    char ';'
+    manyTill anyChar newline
+    spaces
+    return ()
+
 expression :: Parser T.Exp
-expression = quoted <|> list <|> atom
+expression = do
+    skipMany comment
+    quoted <|> list <|> atom
 
 toScmErr :: ParseError -> T.ScmErr
 toScmErr = T.ScmErr . show
