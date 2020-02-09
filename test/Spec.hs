@@ -20,10 +20,14 @@ runPrelude xs = fst $ runScheme xs Scm.prelude
 checkIO xs = runPrelude (map fst xs) `shouldBe` (map snd xs)
 
 main :: IO ()
-main = do
+main = hspec $ do
     basics
+    sugar
+    environment
+    general
+    big
 
-basics = hspec $ describe "basics" $ do
+basics = describe "scheme-basics" $ do
     it "does simple addition" $ checkIO [("(+ 1 2)", "Right 3.0")]
 
     it "does nested addition" $ checkIO [("(+ 1 (* 2 3))", "Right 7.0")]
@@ -79,22 +83,153 @@ basics = hspec $ describe "basics" $ do
         [("(begin (define one (lambda () 1)) (+ (one) 2))", "Right 3.0")]
 
     it "handles multiline" $ checkIO
-        [ ( "(begin \n\
-            \   (define one \n\
-            \       (lambda () 1)) \n\
+        [ ( "(begin                 \n\
+            \   (define one         \n\
+            \       (lambda () 1))  \n\
             \   (+ (one) 2))"
           , "Right 3.0"
           )
         ]
 
     it "handles multiline with comments" $ checkIO
-        [ ( "(begin \n\
-            \   (define one ; hey there \n\
-            \       ; generating the number 1 \n\
-            \       ; some more comments...\n\
-            \       (lambda () 1)) \n\
-            \       ;; even more... \n\
+        [ ( "(begin                             \n\
+            \   (define one ; hey there         \n\
+            \       ; generating the number 1   \n\
+            \       ; some more comments...     \n\
+            \       (lambda () 1))              \n\
+            \       ;; even more...             \n\
             \   (+ (one) 2))"
           , "Right 3.0"
           )
         ]
+
+    it "does inline lambda calculation" $ checkIO
+        [ ( "((lambda (x y z)       \n\
+            \       (+ x            \n\
+            \          (+ y z))) 1  \n\
+            \                    2  \n\
+            \                    3)"
+          , "Right 6.0"
+          )
+        ]
+
+sugar = describe "scheme-sugar" $ do
+    it "handles syntax sugar for lambda body" $ checkIO
+        [ ( "((lambda (x y z)           \n\
+            \       (quote whatever)    \n\
+            \       (+ x                \n\
+            \          (+ y z))) 1      \n\
+            \                    2      \n\
+            \                    3)"
+          , "Right 6.0"
+          )
+        ]
+
+    it "handles syntax sugar for func definition" $ checkIO
+        [ ( "(define (add3 x y z)   \n\
+            \   (+ x                \n\
+            \      (+ y z)))"
+          , "Right "
+          )
+        , ( "(add3 101 \n\
+            \      102 \n\
+            \      103))"
+          , "Right 306.0"
+          )
+        ]
+
+    it "handles syntax sugar for func body" $ checkIO
+        [ ( "(define (three)                \n\
+            \   (quote whatever)            \n\
+            \   (define one (lambda () 1))  \n\
+            \   (+ (one) 2))"
+          , "Right "
+          )
+        , ("(three)", "Right 3.0")
+        ]
+
+environment = describe "scheme-environment" $ do
+    it "does simple var assignment" $ checkIO
+        [ ("(define inc (lambda (x) (+ x 1)))", "Right ")
+        , ("(define x 3)"    , "Right ")
+        , ("(set! x (inc x))", "Right ")
+        , ("x"               , "Right 4.0")
+        , ("(set! x (inc x))", "Right ")
+        , ("x"               , "Right 5.0")
+        ]
+
+    it "passes the bank account test" $ checkIO
+        [ ( "(define account                        \n\
+            \   (lambda (bal)                       \n\
+            \       (lambda (amt)                   \n\
+            \           (begin                      \n\
+            \               (set! bal (+ bal amt))  \n\
+            \               bal))))"
+          , "Right "
+          )
+        , ("(define a1 (account 100))", "Right ")
+        , ("(a1 0)"                   , "Right 100.0")
+        , ("(a1 10)"                  , "Right 110.0")
+        , ("(a1 10)"                  , "Right 120.0")
+        ]
+
+general = describe "scheme-general" $ do
+    it "calculates sqrt(200)" $ checkIO
+        [ ("(define (abs x) (if (>= x 0) x (- 0 x)))", "Right ")
+        , ( "(define (newton guess function derivative epsilon)                     \n\
+            \   (define guess2 (- guess (/ (function guess) (derivative guess))))   \n\
+            \   (if (< (abs (- guess guess2)) epsilon) guess2                       \n\
+            \       (newton guess2 function derivative epsilon)))"
+          , "Right "
+          )
+        , ( "(define (square-root a) \n\
+            \   (newton 1 (lambda (x) (- (* x x) a)) (lambda (x) (* 2 x)) 1e-8))"
+          , "Right "
+          )
+        , ("(> (square-root 200) 14.14213)", "Right ")
+        , ("(< (square-root 200) 14.14215)", "Right ")
+        ]
+
+    it "calculates fibonacci numbers" $ checkIO
+        [ ( "(define fib (lambda (n) (if (< n 2) 1 (+ (fib (- n 1)) (fib (- n 2))))))"
+          , "Right "
+          )
+        , ("(fib 20)", "Right ")
+        , ( "(define range (lambda (a b) (if (= a b) (quote ()) (cons a (range (+ a 1) b)))))"
+          , "Right "
+          )
+        , ( "(define map (lambda (f l) (if (null? l) null (cons (f (car l)) (map f (cdr l))))))"
+          , "Right "
+          )
+        , ( "(range 0 10)"
+          , "Ok([0, [1, [2, [3, [4, [5, [6, [7, [8, [9, []]]]]]]]]]])"
+          )
+        , ( "(map fib (range 0 10))"
+          , "Ok([1, [1, [2, [3, [5, [8, [13, [21, [34, [55, []]]]]]]]]]])"
+          )
+        ]
+
+    it "passes man_or_boy(4) test" $ checkIO
+        [ ( "(define A (lambda (k x1 x2 x3 x4 x5)                           \n\
+            \   (define B (lambda () (set! k (- k 1)) (A k B x1 x2 x3 x4))) \n\
+            \  (if (<= k 0) (+ (x4) (x5)) (B))))"
+          , "Right "
+          )
+        , ( "(A 4 (lambda () 1) (lambda () -1) (lambda () -1) (lambda () 1) (lambda () 0))"
+          , "Right 1.0"
+          )
+        ]
+
+big = describe "scheme-big" $ do
+    it "passes man_or_boy(10) test" $ checkIO
+        [ ( "(define A (lambda (k x1 x2 x3 x4 x5)                           \n\
+            \   (define B (lambda () (set! k (- k 1)) (A k B x1 x2 x3 x4))) \n\
+            \  (if (<= k 0) (+ (x4) (x5)) (B))))"
+          , "Right "
+          )
+        , ( "(A 4 (lambda () 1) (lambda () -1) (lambda () -1) (lambda () 1) (lambda () 0))"
+          , "Right -67.0"
+          )
+        ]
+
+
