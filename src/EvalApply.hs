@@ -4,7 +4,6 @@ module EvalApply
 where
 import qualified Data.Map                      as Map
 import           Types
-import           Data.Either
 import           Control.Monad.State
 
 handleLambda :: Exp -> [Exp] -> State Env (Either ScmErr Exp)
@@ -51,6 +50,18 @@ eval (List ((Symbol "define") : xs)) = state $ \env -> case xs of
                     let (Env d o) = env'
                         env''     = Env (Map.insert sym evalDef d) o
                     in  (Right Empty, env'')
+
+    -- syntax sugar for func definition
+    (List ((Symbol func) : args)) : defs ->
+        let desugared =
+                    (List
+                        [ (Symbol "define")
+                        , (Symbol func)
+                        , (List $ [(Symbol "lambda"), List args] ++ defs)
+                        ]
+                    )
+        in  runState (eval desugared) env
+
     _ -> (Left $ ScmErr $ "define: nothing to define", env)
 
 eval (List ((Symbol "set!") : xs)) = state $ \env -> case xs of
