@@ -67,11 +67,11 @@ eval (List ((Symbol "define") : xs)) = state $ \env -> case xs of
 eval (List ((Symbol "set!") : xs)) = state $ \env -> case xs of
     [(Symbol sym), def] ->
         let (mevalDef, env') = runState (eval def) env
-        in  case mevalDef of
+        in
+            case mevalDef of
                 Left e -> (Left e, env')
                 Right evalDef ->
-                    let (Env d o) = env'
-                        env''     = setValue sym def env'
+                    let env'' = setValue sym evalDef env'
                     in  (Right Empty, env'')
     _ -> (Left $ ScmErr $ "set!: nothing to set", env)
 
@@ -122,4 +122,4 @@ apply (Closure (ScmClosure body env)) args =
             runState ((forM (init defs) eval) >> (eval (last defs))) localEnv
     in
         res
-
+apply _ _ = undefined

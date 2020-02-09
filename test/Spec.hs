@@ -212,7 +212,7 @@ general = describe "scheme-general" $ do
     it "passes man_or_boy(4) test" $ checkIO
         [ ( "(define A (lambda (k x1 x2 x3 x4 x5)                           \n\
             \   (define B (lambda () (set! k (- k 1)) (A k B x1 x2 x3 x4))) \n\
-            \  (if (<= k 0) (+ (x4) (x5)) (B))))"
+            \   (if (<= k 0) (+ (x4) (x5)) (B))))"
           , "Right "
           )
         , ( "(A 4 (lambda () 1) (lambda () -1) (lambda () -1) (lambda () 1) (lambda () 0))"

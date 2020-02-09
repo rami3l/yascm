@@ -32,7 +32,7 @@ instance Show Exp where
 newtype ScmPrimitive = ScmPrimitive ([Exp] -> Either ScmErr Exp)
 
 instance Show ScmPrimitive where
-    show prim = "<Primitive>"
+    show _ = "<Primitive>"
 
 makePrim :: ([Exp] -> Either ScmErr Exp) -> Exp
 makePrim = Primitive . ScmPrimitive
@@ -43,7 +43,7 @@ data ScmClosure = ScmClosure {
 }
 
 instance Show ScmClosure where
-    show clos = "<Closure>"
+    show _ = "<Closure>"
 
 newtype ScmErr = ScmErr {
     reason :: String
@@ -69,5 +69,15 @@ lookup s env = case Map.lookup s (dict env) of
         Nothing -> Nothing
 
 setValue :: String -> Exp -> Env -> Env
-setValue sym def (Env d Nothing ) = Env (Map.insert sym def d) Nothing
-setValue sym def (Env d (Just o)) = Env d $ Just (setValue sym def o)
+setValue sym def (Env d mo) =
+    let isLocal = case Map.lookup sym d of
+            Just _  -> True
+            Nothing -> False
+        isExternal = case Types.lookup sym (Env d mo) of
+            Just _  -> True
+            Nothing -> False
+    in  if isLocal
+            then Env (Map.insert sym def d) mo
+            else if isExternal
+                then let (Just o) = mo in Env d $ Just (setValue sym def o)
+                else Env (Map.insert sym def d) mo
