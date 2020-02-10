@@ -27,8 +27,8 @@ eval :: Exp -> IORef Env -> IO (Either ScmErr Exp)
 eval n@(Number _) _      = return (Right n)
 
 eval (  Symbol s) envBox = do
-    env <- readIORef envBox
-    case Types.lookup s env of
+    mdef <- Types.lookup s envBox
+    case mdef of
         Just def -> return (Right def)
         Nothing ->
             return (Left $ ScmErr $ "eval: Symbol \"" ++ s ++ "\" undefined.")
@@ -43,8 +43,8 @@ eval (List ((Symbol "quote") : xs)) _ = case xs of
     _     -> return (Left $ ScmErr $ "quote: nothing to quote")
 
 eval (List ((Symbol "lambda") : xs)) envBox = do
-    env     <- readIORef envBox
-    closEnv <- newIORef (fromOuter env)
+    -- ! Here we want to clone a pointer, not to clone an Env.
+    closEnv <- newIORef (fromOuter envBox)
     return
         $ let t       = List xs
               closure = ScmClosure t closEnv
@@ -56,7 +56,7 @@ eval (List ((Symbol "define") : xs)) envBox = case xs of
         case mevalDef of
             Left  e       -> return (Left e)
             Right evalDef -> do
-                modifyIORef' envBox (insertValue sym evalDef)
+                insertValue sym evalDef envBox
                 return (Right Empty)
 
     -- syntax sugar for func definition
@@ -79,7 +79,7 @@ eval (List ((Symbol "set!") : xs)) envBox = case xs of
         case mevalDef of
             Left  e       -> return (Left e)
             Right evalDef -> do
-                modifyIORef' envBox (setValue sym evalDef)
+                setValue sym evalDef envBox
                 return (Right Empty)
     _ -> return (Left $ ScmErr $ "set!: nothing to set")
 
@@ -120,8 +120,7 @@ apply (Closure   (ScmClosure body envBox)) args = do
     let (List (List (vars) : defs)) = body
     env      <- readIORef envBox
     localEnv <- newIORef env
-    forM_ (zip vars args)
-          (\((Symbol i), arg) -> modifyIORef' localEnv (insertValue i arg))
+    forM_ (zip vars args) (\((Symbol i), arg) -> insertValue i arg localEnv)
     evalList defs localEnv
 
 apply _ _ = undefined

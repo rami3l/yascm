@@ -22,7 +22,7 @@ number = do
     return $ T.Number res
 
 atom :: Parser T.Exp
-atom = number <|> symbol
+atom = try symbol <|> number
 
 regList :: Parser T.Exp
 regList = do

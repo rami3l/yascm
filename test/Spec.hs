@@ -22,7 +22,7 @@ main = hspec $ do
     sugar
     environment
     general
-    big
+    -- big
 
 basics = describe "scheme-basics" $ do
     it "does simple addition" $ checkIO [("(+ 1 2)", "Right 3.0")]
@@ -183,29 +183,28 @@ general = describe "scheme-general" $ do
             \   (newton 1 (lambda (x) (- (* x x) a)) (lambda (x) (* 2 x)) 1e-8))"
           , "Right "
           )
-        , ("(> (square-root 200) 14.14213)", "Right ")
-        , ("(< (square-root 200) 14.14215)", "Right ")
+        , ("(> (square-root 200) 14.14213)", "Right True")
+        , ("(< (square-root 200) 14.14215)", "Right True")
         ]
 
     it "calculates fibonacci numbers" $ checkIO
         [ ( "(define fib (lambda (n) (if (< n 2) 1 (+ (fib (- n 1)) (fib (- n 2))))))"
           , "Right "
           )
-        , ("(fib 20)", "Right ")
+        , ("(fib 20)", "Right 10946.0")
         , ( "(define range (lambda (a b) (if (= a b) (quote ()) (cons a (range (+ a 1) b)))))"
           , "Right "
           )
         , ( "(define map (lambda (f l) (if (null? l) null (cons (f (car l)) (map f (cdr l))))))"
           , "Right "
           )
-        , ( "(range 0 10)"
-          , "Ok([0, [1, [2, [3, [4, [5, [6, [7, [8, [9, []]]]]]]]]]])"
-          )
+        , ("(range 0 10)", "Right [0.0,1.0,2.0,3.0,4.0,5.0,6.0,7.0,8.0,9.0]")
         , ( "(map fib (range 0 10))"
-          , "Ok([1, [1, [2, [3, [5, [8, [13, [21, [34, [55, []]]]]]]]]]])"
+          , "Right [1.0,1.0,2.0,3.0,5.0,8.0,13.0,21.0,34.0,55.0]"
           )
         ]
 
+big = describe "scheme-big" $ do
     it "passes man_or_boy(4) test" $ checkIO
         [ ( "(define A (lambda (k x1 x2 x3 x4 x5)                           \n\
             \   (define B (lambda () (set! k (- k 1)) (A k B x1 x2 x3 x4))) \n\
@@ -217,7 +216,6 @@ general = describe "scheme-general" $ do
           )
         ]
 
-big = describe "scheme-big" $ do
     it "passes man_or_boy(10) test" $ checkIO
         [ ( "(define A (lambda (k x1 x2 x3 x4 x5)                           \n\
             \   (define B (lambda () (set! k (- k 1)) (A k B x1 x2 x3 x4))) \n\

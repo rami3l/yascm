@@ -56,31 +56,42 @@ instance Show ScmErr where
 
 data Env = Env {
     dict :: Map.Map String Exp,
-    outer :: Maybe Env
+    outer :: Maybe (IORef Env)
 }
 
-fromOuter :: Env -> Env
-fromOuter fromEnv = Env Map.empty (Just fromEnv)
+fromOuter :: IORef Env -> Env
+fromOuter fromEnvBox = Env Map.empty (Just fromEnvBox)
 
 {-| Find the definition of a Symbol -}
-lookup :: String -> Env -> Maybe Exp
-lookup s env = case Map.lookup s (dict env) of
-    Just def -> Just def
-    Nothing  -> case outer env of
-        Just o  -> Types.lookup s o
-        Nothing -> Nothing
+lookup :: String -> IORef Env -> IO (Maybe Exp)
+lookup s envBox = do
+    env <- readIORef envBox
+    case Map.lookup s (dict env) of
+        Just def -> return (Just def)
+        Nothing  -> case outer env of
+            Just o  -> Types.lookup s o
+            Nothing -> return Nothing
 
-insertValue :: String -> Exp -> Env -> Env
-insertValue sym def (Env d mo) = Env (Map.insert sym def d) mo
+insertValue :: String -> Exp -> IORef Env -> IO ()
+insertValue sym def envBox = do
+    (Env d mo) <- readIORef envBox
+    writeIORef envBox $ Env (Map.insert sym def d) mo
 
-setValue :: String -> Exp -> Env -> Env
-setValue sym def env@(Env d mo) =
+setValue :: String -> Exp -> IORef Env -> IO ()
+setValue sym def envBox = do
+    (Env d mo) <- readIORef envBox
     let isLocal = case Map.lookup sym d of
             Just _  -> True
             Nothing -> False
-        isDefined = case Types.lookup sym env of
-            Just _  -> True
-            Nothing -> False
-    in  if not isLocal && isDefined
-            then let (Just o) = mo in Env d $ Just (setValue sym def o)
-            else Env (Map.insert sym def d) mo
+    let ioIsDefined = do
+            res <- Types.lookup sym envBox
+            case res of
+                Just _  -> return True
+                Nothing -> return False
+    do
+        isDefined <- ioIsDefined
+        if not isLocal && isDefined
+            then do
+                let (Just o) = mo
+                setValue sym def o
+            else insertValue sym def envBox
