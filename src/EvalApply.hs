@@ -22,15 +22,15 @@ handleLambda exp xs = state $ \env ->
                 in  (apply func args, finalEnv)
 
 eval :: Exp -> State Env (Either ScmErr Exp)
-eval (Number n) = return (Right (Number n))
+eval n@(Number _) = return (Right n)
 
-eval (Symbol s) = state $ \env -> case Types.lookup s env of
+eval (  Symbol s) = state $ \env -> case Types.lookup s env of
     Just def -> (Right def, env)
     Nothing  -> (Left $ ScmErr $ "eval: Symbol \"" ++ s ++ "\" undefined.", env)
 
 eval (List []) = return (Left $ ScmErr $ "eval: got empty List")
 
-eval (List ((List lambda) : xs)) = handleLambda (List lambda) xs
+eval (List (lambda@(List _) : xs)) = handleLambda lambda xs
 
 eval (List ((Symbol "quote") : xs)) = case xs of
     [sth] -> return (Right sth)
@@ -52,14 +52,15 @@ eval (List ((Symbol "define") : xs)) = state $ \env -> case xs of
                     in  (Right Empty, env'')
 
     -- syntax sugar for func definition
-    (List ((Symbol func) : args)) : defs ->
-        let desugared =
-                    (List
-                        [ (Symbol "define")
-                        , (Symbol func)
-                        , (List $ [(Symbol "lambda"), List args] ++ defs)
-                        ]
-                    )
+    (List (func@(Symbol _) : args)) : defs ->
+        let
+            desugared =
+                (List
+                    [ (Symbol "define")
+                    , func
+                    , (List $ [(Symbol "lambda"), List args] ++ defs)
+                    ]
+                )
         in  runState (eval desugared) env
 
     _ -> (Left $ ScmErr $ "define: nothing to define", env)

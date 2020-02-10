@@ -69,11 +69,11 @@ lookup s env = case Map.lookup s (dict env) of
         Nothing -> Nothing
 
 setValue :: String -> Exp -> Env -> Env
-setValue sym def (Env d mo) =
+setValue sym def env@(Env d mo) =
     let isLocal = case Map.lookup sym d of
             Just _  -> True
             Nothing -> False
-        isExternal = case Types.lookup sym (Env d mo) of
+        isExternal = case Types.lookup sym env of
             Just _  -> True
             Nothing -> False
     in  if isLocal
