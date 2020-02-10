@@ -14,15 +14,24 @@ symbol = do
     xs <- many (letter <|> digit <|> symChar)
     return $ T.Symbol (x : xs)
 
-number :: Parser T.Exp
-number = do
-    x  <- digit <|> oneOf ".-"
+posNumber :: Parser T.Exp
+posNumber = do
+    x  <- digit <|> char '.'
     xs <- many (digit <|> oneOf ".e-")
     let res = read (x : xs)
     return $ T.Number res
 
+negNumber :: Parser T.Exp
+negNumber = do
+    _              <- char '-'
+    (T.Number res) <- posNumber
+    return $ T.Number (negate res)
+
+number :: Parser T.Exp
+number = negNumber <|> posNumber
+
 atom :: Parser T.Exp
-atom = try symbol <|> number
+atom = try number <|> symbol
 
 regList :: Parser T.Exp
 regList = do
