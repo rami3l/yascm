@@ -7,10 +7,12 @@ module Types
     , Env(..)
     , fromOuter
     , Types.lookup
+    , insertValue
     , setValue
     )
 where
 import qualified Data.Map                      as Map
+import           Data.IORef
 
 data Exp = Boolean Bool
          | Symbol String
@@ -39,7 +41,7 @@ makePrim = Primitive . ScmPrimitive
 
 data ScmClosure = ScmClosure {
     body :: Exp,
-    env :: Env
+    env :: IORef Env
 }
 
 instance Show ScmClosure where
@@ -68,16 +70,17 @@ lookup s env = case Map.lookup s (dict env) of
         Just o  -> Types.lookup s o
         Nothing -> Nothing
 
+insertValue :: String -> Exp -> Env -> Env
+insertValue sym def (Env d mo) = Env (Map.insert sym def d) mo
+
 setValue :: String -> Exp -> Env -> Env
 setValue sym def env@(Env d mo) =
     let isLocal = case Map.lookup sym d of
             Just _  -> True
             Nothing -> False
-        isExternal = case Types.lookup sym env of
+        isDefined = case Types.lookup sym env of
             Just _  -> True
             Nothing -> False
-    in  if isLocal
-            then Env (Map.insert sym def d) mo
-            else if isExternal
-                then let (Just o) = mo in Env d $ Just (setValue sym def o)
-                else Env (Map.insert sym def d) mo
+    in  if not isLocal && isDefined
+            then let (Just o) = mo in Env d $ Just (setValue sym def o)
+            else Env (Map.insert sym def d) mo
