@@ -122,6 +122,6 @@ apply (Closure   (ScmClosure body envBox)) args = do
     localEnv <- newIORef env
     forM_ (zip vars args)
           (\((Symbol i), arg) -> modifyIORef' localEnv (insertValue i arg))
-    evalList defs envBox
+    evalList defs localEnv
 
 apply _ _ = undefined
