@@ -22,7 +22,7 @@ main = hspec $ do
     sugar
     environment
     general
-    -- big
+    big
 
 basics = describe "scheme-basics" $ do
     it "does simple addition" $ checkIO [("(+ 1 2)", "Right 3.0")]
@@ -204,7 +204,6 @@ general = describe "scheme-general" $ do
           )
         ]
 
-big = describe "scheme-big" $ do
     it "passes man_or_boy(4) test" $ checkIO
         [ ( "(define A (lambda (k x1 x2 x3 x4 x5)                           \n\
             \   (define B (lambda () (set! k (- k 1)) (A k B x1 x2 x3 x4))) \n\
@@ -216,13 +215,14 @@ big = describe "scheme-big" $ do
           )
         ]
 
+big = describe "scheme-big" $ do
     it "passes man_or_boy(10) test" $ checkIO
         [ ( "(define A (lambda (k x1 x2 x3 x4 x5)                           \n\
             \   (define B (lambda () (set! k (- k 1)) (A k B x1 x2 x3 x4))) \n\
             \  (if (<= k 0) (+ (x4) (x5)) (B))))"
           , "Right "
           )
-        , ( "(A 4 (lambda () 1) (lambda () -1) (lambda () -1) (lambda () 1) (lambda () 0))"
+        , ( "(A 10 (lambda () 1) (lambda () -1) (lambda () -1) (lambda () 1) (lambda () 0))"
           , "Right -67.0"
           )
         ]
