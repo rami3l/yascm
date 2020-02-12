@@ -4,7 +4,15 @@ module Parser
     )
 where
 import           Text.ParserCombinators.Parsec
+import           Data.List
 import qualified Types                         as T
+
+eatComment :: String -> String
+eatComment = unlines . map eatCommentLine . lines
+  where
+    eatCommentLine ln =
+        let ws = words ln
+        in  unwords $ takeWhile (\w -> not (";" `isPrefixOf` w)) ws
 
 symChar :: Parser Char
 symChar = oneOf "!#$%&|*+-/:<=>?@^_~"
@@ -78,11 +86,11 @@ toScmErr :: ParseError -> T.ScmErr
 toScmErr = T.ScmErr . show
 
 run :: String -> Either T.ScmErr T.Exp
-run input = case parse expression "yascm" input of
+run input = case parse expression "yascm" (eatComment input) of
     Right r -> Right r
     Left  e -> Left $ toScmErr e
 
 runList :: String -> Either T.ScmErr [T.Exp]
-runList input = case parse expressions "yascm" input of
+runList input = case parse expressions "yascm" (eatComment input) of
     Right r -> Right r
     Left  e -> Left $ toScmErr e
