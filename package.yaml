@@ -16,7 +16,8 @@ executables:
   yascm-exe:
     main: Main.hs
     source-dirs: app/
-    dependencies: yascm
+    dependencies:
+      - yascm
 
 library:
   source-dirs: src/

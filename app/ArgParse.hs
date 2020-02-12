@@ -18,7 +18,7 @@ args =
         <$> optional
                 (strOption
                     (long "load" <> short 'f' <> metavar "FILE" <> help
-                        "Source file to load"
+                        "Load a source file"
                     )
                 )
         <*> switch (long "repl" <> short 'i' <> help "REPL (interactive) mode")
