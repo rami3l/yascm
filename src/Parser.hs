@@ -59,20 +59,20 @@ quoted = do
     r <- expression
     return $ T.List [T.Symbol "quote", r]
 
-comment :: Parser Char
+comment :: Parser ()
 comment = do
     _ <- char ';'
     _ <- manyTill anyChar newline
+    -- !^  This made the comment lines at the end of a string to be a failure
+    -- * Workaround: add a new line after the final comment
     spaces
-    return ' '
+    return ()
 
 expression :: Parser T.Exp
-expression = do
-    skipMany comment
-    quoted <|> list <|> atom
+expression = quoted <|> list <|> atom
 
 expressions :: Parser [T.Exp]
-expressions = sepEndBy1 expression $ (many1 comment) <|> (many1 space)
+expressions = sepEndBy1 expression $ many1 space
 
 toScmErr :: ParseError -> T.ScmErr
 toScmErr = T.ScmErr . show
