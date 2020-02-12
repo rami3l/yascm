@@ -9,6 +9,7 @@ PS: This project is a rewritten version of [rusk] interpreter, originally writte
 
 - Load source file
 - stdlib written in Scheme
+- I/O primitives
 
 ## Notes
 
