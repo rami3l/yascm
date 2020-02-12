@@ -10,9 +10,8 @@ import qualified Types                         as T
 eatComment :: String -> String
 eatComment = unlines . map eatCommentLine . lines
   where
-    eatCommentLine ln =
-        let ws = words ln
-        in  unwords $ takeWhile (\w -> not (";" `isPrefixOf` w)) ws
+    eatCommentLine =
+        unwords . takeWhile (\w -> not (";" `isPrefixOf` w)) . words
 
 symChar :: Parser Char
 symChar = oneOf "!#$%&|*+-/:<=>?@^_~"
