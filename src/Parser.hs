@@ -1,5 +1,6 @@
 module Parser
     ( run
+    , runList
     )
 where
 import           Text.ParserCombinators.Parsec
@@ -58,22 +59,30 @@ quoted = do
     r <- expression
     return $ T.List [T.Symbol "quote", r]
 
-comment :: Parser ()
+comment :: Parser Char
 comment = do
     _ <- char ';'
     _ <- manyTill anyChar newline
     spaces
-    return ()
+    return ' '
 
 expression :: Parser T.Exp
 expression = do
     skipMany comment
     quoted <|> list <|> atom
 
+expressions :: Parser [T.Exp]
+expressions = sepEndBy1 expression $ (many1 comment) <|> (many1 space)
+
 toScmErr :: ParseError -> T.ScmErr
 toScmErr = T.ScmErr . show
 
 run :: String -> Either T.ScmErr T.Exp
-run input = case parse expression "scheme" input of
+run input = case parse expression "yascm" input of
+    Right r -> Right r
+    Left  e -> Left $ toScmErr e
+
+runList :: String -> Either T.ScmErr [T.Exp]
+runList input = case parse expressions "yascm" input of
     Right r -> Right r
     Left  e -> Left $ toScmErr e

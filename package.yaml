@@ -10,13 +10,13 @@ dependencies:
   - mtl
   - parsec
   - haskeline
+  - optparse-applicative
 
 executables:
   yascm-exe:
     main: Main.hs
     source-dirs: app/
-    dependencies:
-      yascm
+    dependencies: yascm
 
 library:
   source-dirs: src/
@@ -30,7 +30,7 @@ library:
 tests:
   yascm-test:
     main: Spec.hs
-    source-dirs: test/ 
+    source-dirs: test/
     dependencies:
       - yascm
       - hspec

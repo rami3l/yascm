@@ -2,27 +2,72 @@ module Main where
 
 import qualified Types                         as T
 import qualified Parser                        as P
-import qualified EvalApply                     as E
+import           EvalApply
 import qualified ScmPrelude                    as Scm
 import qualified Repl
 import           Control.Monad.State
 import           Test.Hspec
 import           Data.IORef
 
+checkParseList xs = map (show . P.runList . fst) xs `shouldBe` (map snd xs)
+
 runPrelude :: [String] -> IO [String]
 runPrelude xs = do
     preludeBox <- newIORef Scm.prelude
-    Repl.runScheme xs preludeBox
+    Repl.runStrings xs preludeBox
 
 checkIO xs = runPrelude (map fst xs) `shouldReturn` (map snd xs)
 
 main :: IO ()
 main = hspec $ do
+    parser
     basics
     sugar
     environment
     general
     big
+
+parser = describe "scheme-parser" $ do
+    it "does simple parsing" $ checkParseList
+        [ ( "(define inc (lambda (x) (+ x 1))) (inc 2)"
+          , "Right [[define,inc,[lambda,[x],[+,x,1.0]]],[inc,2.0]]"
+          )
+        , ( "(define inc (lambda (x) (+ x 1)))\n(inc 2)"
+          , "Right [[define,inc,[lambda,[x],[+,x,1.0]]],[inc,2.0]]"
+          )
+        , ( "(define inc\n\
+            \  (lambda (x)\n\
+            \    (+ x 1)))\n\
+            \(inc 2)"
+          , "Right [[define,inc,[lambda,[x],[+,x,1.0]]],[inc,2.0]]"
+          )
+        ]
+
+    it "handles comments" $ checkParseList
+        [ ( "(define inc (lambda (x) (+ x 1))) ; this is a function \n\
+            \(inc 1)"
+          , "Right [[define,inc,[lambda,[x],[+,x,1.0]]],[inc,1.0]]"
+          )
+        , ( "(define inc (lambda (x) (+ x 1))) ; this is a function \n\
+            \(inc 2) ;; this is a function call"
+          , "Right [[define,inc,[lambda,[x],[+,x,1.0]]],[inc,2.0]]"
+          )
+        , ( "(define inc\n\
+            \(lambda (x) (+ x 1)))\n\
+            \(inc 3)"
+          , "Right [[define,inc,[lambda,[x],[+,x,1.0]]],[inc,3.0]]"
+          )
+        , ( "(define inc\n\
+            \;; this is a function\n\
+            \;; something else\n\
+            \(lambda (x)\n\
+            \(+ x 1)))\n\
+            \(inc 4)"
+          , "Right [[define,inc,[lambda,[x],[+,x,1.0]]],[inc,4.0]]"
+          )
+        ]
+
+
 
 basics = describe "scheme-basics" $ do
     it "does simple addition" $ checkIO [("(+ 1 2)", "Right 3.0")]
@@ -156,12 +201,12 @@ environment = describe "scheme-environment" $ do
         ]
 
     it "passes the bank account test" $ checkIO
-        [ ( "(define account                        \n\
-            \   (lambda (bal)                       \n\
-            \       (lambda (amt)                   \n\
-            \           (begin                      \n\
-            \               (set! bal (+ bal amt))  \n\
-            \               bal))))"
+        [ ( "(define account                       \n\
+           \  (lambda (bal)                        \n\
+           \      (lambda (amt)                    \n\
+           \          (begin                       \n\
+           \              (set! bal (+ bal amt))   \n\
+           \              bal))))"
           , "Right "
           )
         , ("(define a1 (account 100))", "Right ")

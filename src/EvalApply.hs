@@ -1,5 +1,6 @@
 module EvalApply
     ( eval
+    , evalList
     )
 where
 import           Data.IORef
@@ -116,6 +117,7 @@ eval _ _      = return (Left $ ScmErr "eval: unexpected Exp")
 apply :: Exp -> [Exp] -> IO (Either ScmErr Exp)
 -- func can only be Primitive or Closure
 apply (Primitive (ScmPrimitive prim     )) args = return (prim args)
+
 apply (Closure   (ScmClosure body envBox)) args = do
     let (List (List (vars) : defs)) = body
     env      <- readIORef envBox

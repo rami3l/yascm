@@ -40,12 +40,14 @@ makePrim :: ([Exp] -> Either ScmErr Exp) -> Exp
 makePrim = Primitive . ScmPrimitive
 
 data ScmClosure = ScmClosure {
+    -- (List (List (vars) : defs)) = body
     body :: Exp,
     env :: IORef Env
 }
 
 instance Show ScmClosure where
-    show _ = "<Closure>"
+    show (ScmClosure body _) =
+        let (List (List vars : _)) = body in "<Closure: " ++ show vars ++ ">"
 
 newtype ScmErr = ScmErr {
     reason :: String
