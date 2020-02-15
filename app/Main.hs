@@ -3,7 +3,6 @@ import qualified ScmPrelude                    as Scm
 import qualified Repl                          as R
 import           Data.IORef
 import qualified ArgParse                      as Arg
-import qualified Types                         as T
 import           Options.Applicative
 import           Data.Semigroup                 ( (<>) )
 
@@ -23,13 +22,13 @@ main = dispatch =<< execParser opts
 
 dispatch :: Arg.Args -> IO ()
 dispatch a = do
-    let inFile = Arg.inputFile a
-    let repl   = Arg.repl a
+    let fin  = Arg.fin a
+    let repl = Arg.repl a
 
     {-
     putStrLn
         $  "File: "
-        ++ (show $ Arg.inputFile a)
+        ++ (show $ Arg.fin a)
         ++ ", Interactive: "
         ++ (show $ Arg.repl a)
     -}
@@ -63,7 +62,7 @@ dispatch a = do
     -- load stdlib
     readSourceFileVerbose stdlibPath
 
-    case inFile of
+    case fin of
         Just path -> if repl
             then do
                 readSourceFileVerbose path

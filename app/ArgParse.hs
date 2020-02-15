@@ -8,7 +8,7 @@ import           Options.Applicative
 import           Data.Semigroup                 ( (<>) )
 
 data Args = Args {
-    inputFile :: Maybe String,
+    fin :: Maybe String,
     repl :: Bool
 }
 
