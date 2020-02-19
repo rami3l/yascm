@@ -39,7 +39,7 @@ prelude =
 sigma :: (Exp -> Exp -> Either ScmErr Exp) -> [Exp] -> Either ScmErr Exp
 sigma helper xs = case xs of
     [x, y] -> helper x y
-    y : ys -> (helper y) =<< add ys
+    y : ys -> (helper y) =<< sigma helper ys
     _      -> Left $ ScmErr $ "add/mul : expected multiple terms"
 
 add :: [Exp] -> Either ScmErr Exp
