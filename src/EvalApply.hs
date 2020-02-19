@@ -6,6 +6,7 @@ where
 import           Data.IORef
 import           Types
 import           Control.Monad.State
+import qualified System.Exit                   as Exit
 
 handleLambda :: Exp -> [Exp] -> IORef Env -> IO (Either ScmErr Exp)
 handleLambda exp xs envBox = do
@@ -110,9 +111,15 @@ eval (List ((Symbol "cond") : t)) envBox =
 
 eval (List ((Symbol "begin") : t)) envBox = evalList t envBox
 
+eval (List ((Symbol "exit" ) : t)) _      = case t of
+    []         -> Exit.exitSuccess
+    [Number 0] -> Exit.exitSuccess
+    [Number x] -> Exit.exitWith (Exit.ExitFailure $ truncate x)
+    _          -> return (Left $ ScmErr $ "exit: invalid exit code")
+
 eval (List (func@(Symbol _) : t)) envBox = handleLambda func t envBox
 
-eval _ _      = return (Left $ ScmErr "eval: unexpected Exp")
+eval _ _ = return (Left $ ScmErr "eval: unexpected Exp")
 
 apply :: Exp -> [Exp] -> IO (Either ScmErr Exp)
 -- func can only be Primitive or Closure

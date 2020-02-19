@@ -6,6 +6,7 @@ where
 import           Types
 import qualified Data.Map                      as Map
 
+
 prelude :: Env
 prelude =
     let o = Nothing
@@ -105,3 +106,4 @@ isNull :: [Exp] -> Either ScmErr Exp
 isNull [List []] = Right $ Boolean True
 isNull [List _ ] = Right $ Boolean False
 isNull _         = Left $ ScmErr $ "null?: expected a List"
+

@@ -85,15 +85,14 @@ setValue sym def envBox = do
     let isLocal = case Map.lookup sym d of
             Just _  -> True
             Nothing -> False
-    let ioIsDefined = do
-            res <- Types.lookup sym envBox
-            case res of
-                Just _  -> return True
-                Nothing -> return False
-    do
-        isDefined <- ioIsDefined
-        if not isLocal && isDefined
-            then do
-                let (Just o) = mo
-                setValue sym def o
-            else insertValue sym def envBox
+    isDefined <- do
+        res <- Types.lookup sym envBox
+        case res of
+            Just _  -> return True
+            Nothing -> return False
+
+    if not isLocal && isDefined
+        then do
+            let (Just o) = mo
+            setValue sym def o
+        else insertValue sym def envBox

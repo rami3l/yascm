@@ -7,13 +7,15 @@ PS: This project is a rewritten version of [rusk] interpreter, originally writte
 
 ## Todo
 
+- String support
+- Proper cons (?)
 - Load source file
 - stdlib written in Scheme
 - I/O primitives
 
 ## Notes
 
-This project uses `hpack`. To build it using `stack build`, run `hpack` to generate the `.cabal` file.
+- This project uses `hpack`. To build it using `stack build`, run `hpack` to generate the `.cabal` file.
 
 ## Reference
 
