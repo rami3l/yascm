@@ -1,14 +1,12 @@
 module Main where
 
-import qualified Types                         as T
 import qualified Parser                        as P
-import           EvalApply
 import qualified ScmPrelude                    as Scm
 import qualified Repl
-import           Control.Monad.State
 import           Test.Hspec
 import           Data.IORef
 
+checkParseList :: [(String, String)] -> Expectation
 checkParseList xs = map (show . P.runList . fst) xs `shouldBe` (map snd xs)
 
 runPrelude :: [String] -> IO [String]
@@ -16,6 +14,7 @@ runPrelude xs = do
     preludeBox <- newIORef Scm.prelude
     Repl.runStrings xs preludeBox
 
+checkIO :: [(String, String)] -> Expectation
 checkIO xs = runPrelude (map fst xs) `shouldReturn` (map snd xs)
 
 main :: IO ()
@@ -27,6 +26,7 @@ main = hspec $ do
     general
     big
 
+parser :: SpecWith ()
 parser = describe "scheme-parser" $ do
     it "does simple parsing" $ checkParseList
         [ ( "(define inc (lambda (x) (+ x 1))) (inc 2)"
@@ -67,8 +67,7 @@ parser = describe "scheme-parser" $ do
           )
         ]
 
-
-
+basics :: SpecWith ()
 basics = describe "scheme-basics" $ do
     it "does simple addition" $ checkIO [("(+ 1 2)", "Right 3.0")]
 
@@ -155,6 +154,7 @@ basics = describe "scheme-basics" $ do
           )
         ]
 
+sugar :: SpecWith ()
 sugar = describe "scheme-sugar" $ do
     it "handles syntax sugar for lambda body" $ checkIO
         [ ( "((lambda (x y z)           \n\
@@ -190,6 +190,7 @@ sugar = describe "scheme-sugar" $ do
         , ("(three)", "Right 3.0")
         ]
 
+environment :: SpecWith ()
 environment = describe "scheme-environment" $ do
     it "does simple var assignment" $ checkIO
         [ ("(define inc (lambda (x) (+ x 1)))", "Right ")
@@ -215,6 +216,7 @@ environment = describe "scheme-environment" $ do
         , ("(a1 10)"                  , "Right 120.0")
         ]
 
+general :: SpecWith ()
 general = describe "scheme-general" $ do
     it "calculates sqrt(200)" $ checkIO
         [ ("(define (abs x) (if (>= x 0) x (- 0 x)))", "Right ")
@@ -260,6 +262,7 @@ general = describe "scheme-general" $ do
           )
         ]
 
+big :: SpecWith ()
 big = describe "scheme-big" $ do
     it "passes man_or_boy(10) test" $ checkIO
         [ ( "(define A (lambda (k x1 x2 x3 x4 x5)                           \n\
