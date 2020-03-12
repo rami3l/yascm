@@ -16,6 +16,7 @@ import           Data.IORef
 
 data Exp = Boolean Bool
          | Symbol String
+         | String String
          | Number Double
          | List [Exp]
          | Closure ScmClosure
@@ -25,6 +26,7 @@ data Exp = Boolean Bool
 instance Show Exp where
     show (Boolean   b) = show b
     show (Symbol    s) = s
+    show (String    s) = "\"" ++ s ++ "\""
     show (Number    n) = show n
     show (List      l) = show l
     show (Closure   c) = show c

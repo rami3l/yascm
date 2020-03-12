@@ -26,9 +26,11 @@ evalList xs envBox = do
     eval (last xs) envBox
 
 eval :: Exp -> IORef Env -> IO (Either ScmErr Exp)
-eval n@(Number _) _      = return (Right n)
+eval n@(  Number _) _      = return (Right n)
 
-eval (  Symbol s) envBox = do
+eval str@(String _) _      = return (Right str)
+
+eval (    Symbol s) envBox = do
     mdef <- Types.lookup s envBox
     case mdef of
         Just def -> return (Right def)

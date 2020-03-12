@@ -22,6 +22,14 @@ symbol = do
     xs <- many (letter <|> digit <|> symChar)
     return $ T.Symbol (x : xs)
 
+-- A naïve string implementation
+-- TODO: implement parsing of escape sequences
+str :: Parser T.Exp
+str = do
+    _ <- char '"'
+    s <- manyTill anyChar (char '"')
+    return $ T.String s
+
 posNumber :: Parser T.Exp
 posNumber = do
     x  <- digit <|> char '.'
@@ -67,7 +75,7 @@ quoted = do
     return $ T.List [T.Symbol "quote", r]
 
 expression :: Parser T.Exp
-expression = quoted <|> list <|> atom
+expression = choice [str, quoted, list, atom]
 
 expressions :: Parser [T.Exp]
 expressions = sepEndBy1 expression $ many1 space
