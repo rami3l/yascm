@@ -11,22 +11,25 @@ prelude :: Env
 prelude =
     let o = Nothing
         d = Map.fromList
-            [ ("+"   , makePrim add)
-            , ("-"   , makePrim sub)
-            , ("*"   , makePrim mul)
-            , ("/"   , makePrim ScmPrelude.div)
-            , ("="   , makePrim eq)
-            , ("<"   , makePrim lt)
-            , ("<="  , makePrim le)
-            , (">"   , makePrim gt)
-            , (">="  , makePrim ge)
-            , ("car" , makePrim car)
-            , ("cdr" , makePrim cdr)
-            , ("cons", makePrim cons)
-            , ("list", makePrim list)
-            , ( "null?"
-              , makePrim isNull
+            [ ("+"    , makePrim add)
+            , ("-"    , makePrim sub)
+            , ("*"    , makePrim mul)
+            , ("/"    , makePrim ScmPrelude.div)
+            , ("="    , makePrim eq)
+            , ("<"    , makePrim lt)
+            , ("<="   , makePrim le)
+            , (">"    , makePrim gt)
+            , (">="   , makePrim ge)
+            , ("car"  , makePrim car)
+            , ("cdr"  , makePrim cdr)
+            , ("cons" , makePrim cons)
+            , ("list" , makePrim list)
+            , ("null?", makePrim isNull)
+            , ( "boolean?"
+              , makePrim isBoolean
               )
+            -- display, newline and exit are all IO actions, 
+            -- so they don't belong here.
             -- , ("display", makePrim display)
             -- , ("newline", makePrim newline)
             -- , ("exit", makePrim exit)
@@ -106,4 +109,8 @@ isNull :: [Exp] -> Either ScmErr Exp
 isNull [List []] = Right $ Boolean True
 isNull [List _ ] = Right $ Boolean False
 isNull _         = Left $ ScmErr $ "null?: expected a List"
+
+isBoolean :: [Exp] -> Either ScmErr Exp
+isBoolean [Boolean _] = Right $ Boolean True
+isBoolean _           = Right $ Boolean False
 

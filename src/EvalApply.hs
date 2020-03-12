@@ -117,6 +117,24 @@ eval (List ((Symbol "exit" ) : t)) _      = case t of
     [Number x] -> Exit.exitWith (Exit.ExitFailure $ truncate x)
     _          -> return (Left $ ScmErr $ "exit: invalid exit code")
 
+eval (List ((Symbol "display") : t)) envBox =
+    let printElem x = do
+            val <- eval x envBox
+            case val of
+                Right v    -> print v >> return (Right Empty)
+                e@(Left _) -> return e
+    in  case t of
+            [] -> return (Left $ ScmErr $ "display: nothing to display")
+            xs -> do
+                res <- forM xs printElem
+                case sequenceA res of
+                    Right _ -> return (Right Empty)
+                    Left  e -> return (Left e)
+
+eval (List ((Symbol "newline") : t)) _ = case t of
+    [] -> putStrLn "" >> return (Right Empty)
+    _  -> return (Left $ ScmErr $ "newline: expected no arguments")
+
 eval (List (func@(Symbol _) : t)) envBox = handleLambda func t envBox
 
 eval _ _ = return (Left $ ScmErr "eval: unexpected Exp")
