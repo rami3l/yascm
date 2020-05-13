@@ -10,15 +10,10 @@ import qualified System.Exit                   as Exit
 
 handleLambda :: Exp -> [Exp] -> IORef Env -> IO (Either ScmErr Exp)
 handleLambda exp xs envBox = do
-    mFunc <- eval exp envBox
-    case mFunc of
-        Left  e    -> return (Left e)
-        Right func -> do
-            lmargs <- forM xs (\x -> eval x envBox)
-            let margs = sequenceA lmargs
-            case margs of
-                Left  e    -> return (Left e)
-                Right args -> apply func args
+    Right func <- eval exp envBox
+    lmargs     <- forM xs (\x -> eval x envBox)
+    Right args <- return (sequenceA lmargs)
+    apply func args
 
 evalList :: [Exp] -> IORef Env -> IO (Either ScmErr Exp)
 evalList xs envBox = do
@@ -56,12 +51,9 @@ eval (List ((Symbol "lambda") : xs)) envBox = do
 
 eval (List ((Symbol "define") : xs)) envBox = case xs of
     [(Symbol sym), def] -> do
-        mevalDef <- eval def envBox
-        case mevalDef of
-            Left  e       -> return (Left e)
-            Right evalDef -> do
-                insertValue sym evalDef envBox
-                return (Right Empty)
+        Right evalDef <- eval def envBox
+        insertValue sym evalDef envBox
+        return (Right Empty)
 
     -- syntax sugar for func definition
     (List (func@(Symbol _) : args)) : defs ->
@@ -79,12 +71,9 @@ eval (List ((Symbol "define") : xs)) envBox = case xs of
 
 eval (List ((Symbol "set!") : xs)) envBox = case xs of
     [(Symbol sym), def] -> do
-        mevalDef <- eval def envBox
-        case mevalDef of
-            Left  e       -> return (Left e)
-            Right evalDef -> do
-                setValue sym evalDef envBox
-                return (Right Empty)
+        Right evalDef <- eval def envBox
+        setValue sym evalDef envBox
+        return (Right Empty)
     _ -> return (Left $ ScmErr $ "set!: nothing to set")
 
 eval (List [(Symbol "if"), cond, then_, else_]) envBox = do
@@ -121,17 +110,15 @@ eval (List ((Symbol "exit" ) : t)) _      = case t of
 
 eval (List ((Symbol "display") : t)) envBox =
     let printElem x = do
-            val <- eval x envBox
-            case val of
-                Right v    -> print v >> return (Right Empty)
-                e@(Left _) -> return e
+            Right val <- eval x envBox
+            print val
+            return (Right Empty)
     in  case t of
             [] -> return (Left $ ScmErr $ "display: nothing to display")
             xs -> do
-                res <- forM xs printElem
-                case sequenceA res of
-                    Right _ -> return (Right Empty)
-                    Left  e -> return (Left e)
+                res     <- forM xs printElem
+                Right _ <- return (sequenceA res)
+                return (Right Empty)
 
 eval (List ((Symbol "newline") : t)) _ = case t of
     [] -> putStrLn "" >> return (Right Empty)
