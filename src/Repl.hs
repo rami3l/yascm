@@ -8,7 +8,6 @@ where
 import qualified Types                         as T
 import qualified Parser                        as P
 import qualified EvalApply                     as E
-import qualified ScmPrelude                    as Scm
 import           Control.Monad.State
 import           System.Console.Haskeline
 import           Data.IORef
