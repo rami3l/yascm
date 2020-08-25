@@ -5,6 +5,7 @@ module Parser
 where
 import           Text.ParserCombinators.Parsec
 import           Data.List
+import           Data.EitherR
 import qualified Types                         as T
 
 eatComment :: String -> String
@@ -84,11 +85,7 @@ toScmErr :: ParseError -> T.ScmErr
 toScmErr = T.ScmErr . show
 
 run :: String -> Either T.ScmErr T.Exp
-run input = case parse expression "yascm" (eatComment input) of
-    Right r -> Right r
-    Left  e -> Left $ toScmErr e
+run input = fmapL toScmErr $ parse expression "yascm" (eatComment input)
 
 runList :: String -> Either T.ScmErr [T.Exp]
-runList input = case parse expressions "yascm" (eatComment input) of
-    Right r -> Right r
-    Left  e -> Left $ toScmErr e
+runList input = fmapL toScmErr $ parse expressions "yascm" (eatComment input)

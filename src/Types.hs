@@ -13,6 +13,7 @@ module Types
 where
 import qualified Data.Map                      as Map
 import           Data.IORef
+import           Data.Maybe
 
 data Exp = Boolean Bool
          | Symbol String
@@ -48,8 +49,8 @@ data ScmClosure = ScmClosure {
 }
 
 instance Show ScmClosure where
-    show (ScmClosure body _) =
-        let (List (List vars : _)) = body in "<Closure: " ++ show vars ++ ">"
+    show (ScmClosure body' _) =
+        let (List (List vars : _)) = body' in "<Closure: " ++ show vars ++ ">"
 
 newtype ScmErr = ScmErr {
     reason :: String
@@ -69,10 +70,10 @@ fromOuter fromEnvBox = Env Map.empty (Just fromEnvBox)
 {-| Find the definition of a Symbol -}
 lookup :: String -> IORef Env -> IO (Maybe Exp)
 lookup s envBox = do
-    env <- readIORef envBox
-    case Map.lookup s (dict env) of
+    env' <- readIORef envBox
+    case Map.lookup s (dict env') of
         Just def -> return (Just def)
-        Nothing  -> case outer env of
+        Nothing  -> case outer env' of
             Just o  -> Types.lookup s o
             Nothing -> return Nothing
 
@@ -84,14 +85,10 @@ insertValue sym def envBox = do
 setValue :: String -> Exp -> IORef Env -> IO ()
 setValue sym def envBox = do
     (Env d mo) <- readIORef envBox
-    let isLocal = case Map.lookup sym d of
-            Just _  -> True
-            Nothing -> False
+    let isLocal = isJust $ Map.lookup sym d
     isDefined <- do
         res <- Types.lookup sym envBox
-        case res of
-            Just _  -> return True
-            Nothing -> return False
+        return $ isJust res
 
     if not isLocal && isDefined
         then do

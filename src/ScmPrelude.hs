@@ -91,11 +91,11 @@ ge [(Boolean x), (Boolean y)] = Right $ Boolean (x >= y)
 ge _                          = Left $ ScmErr $ "ge: expected Number or Boolean"
 
 car :: [Exp] -> Either ScmErr Exp
-car [List (x : xs)] = Right x
-car _               = Left $ ScmErr $ "car: expected a List"
+car [List (x : _)] = Right x
+car _              = Left $ ScmErr $ "car: expected a List"
 
 cdr :: [Exp] -> Either ScmErr Exp
-cdr [List (x : xs)] = Right $ List xs
+cdr [List (_ : xs)] = Right $ List xs
 cdr _               = Left $ ScmErr $ "cdr: expected a List"
 
 cons :: [Exp] -> Either ScmErr Exp
