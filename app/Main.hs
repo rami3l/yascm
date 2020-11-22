@@ -4,7 +4,6 @@ import qualified Repl                          as R
 import           Data.IORef
 import qualified ArgParse                      as Arg
 import           Options.Applicative
-import           Data.Semigroup                 ( (<>) )
 
 welcomeBanner :: String
 welcomeBanner = "Welcome to yascm, a simple Scheme interpreter."

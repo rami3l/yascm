@@ -7,10 +7,10 @@ ghc-options: -Wall
 dependencies:
   - base
   - containers
-  - mtl
   - parsec
   - haskeline
   - optparse-applicative
+  - transformers
   - errors
 
 executables:

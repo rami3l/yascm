@@ -4,13 +4,13 @@ module Repl
     , runStrings
     ) where
 
-import           Control.Monad.State
 import           Data.Function
 import           Data.IORef
 import qualified EvalApply                     as E
 import qualified Parser                        as P
 import           System.Console.Haskeline
 import qualified Types                         as T
+import           Control.Monad.Trans.Class
 
 repl :: IORef T.Env -> IO ()
 repl envBox = runInputT defaultSettings (loop envBox)
@@ -23,7 +23,7 @@ repl envBox = runInputT defaultSettings (loop envBox)
             (\line -> P.run line & either
                 (outputStrLn . show)
                 (\expr -> do
-                    mval <- liftIO $ E.eval expr envBox'
+                    mval <- lift $ E.eval expr envBox'
                     case mval of
                         Right T.Empty -> return ()
                         Right val     -> outputStrLn $ "=> " ++ show val
