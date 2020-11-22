@@ -1,8 +1,7 @@
 module Parser
     ( run
     , runList
-    )
-where
+    ) where
 import           Text.ParserCombinators.Parsec
 import           Data.List
 import           Data.EitherR
@@ -53,16 +52,16 @@ atom = try number <|> symbol
 regList :: Parser T.Exp
 regList = do
     char '(' >> skipMany space
-    res <- sepEndBy expression (many1 space)
+    res <- sepEndBy expr (many1 space)
     _   <- char ')'
     return $ T.List res
 
 dottedList :: Parser T.Exp
 dottedList = do
     char '(' >> skipMany space
-    x <- expression
+    x <- expr
     skipMany1 space >> char '.' >> skipMany1 space
-    y <- expression
+    y <- expr
     _ <- skipMany space >> char ')'
     return $ T.List [x, y]
 
@@ -72,20 +71,20 @@ list = try dottedList <|> regList
 quoted :: Parser T.Exp
 quoted = do
     _ <- char '\''
-    r <- expression
+    r <- expr
     return $ T.List [T.Symbol "quote", r]
 
-expression :: Parser T.Exp
-expression = choice [str, quoted, list, atom]
+expr :: Parser T.Exp
+expr = choice [str, quoted, list, atom]
 
-expressions :: Parser [T.Exp]
-expressions = sepEndBy1 expression $ many1 space
+exprs :: Parser [T.Exp]
+exprs = sepEndBy1 expr $ many1 space
 
 toScmErr :: ParseError -> T.ScmErr
 toScmErr = T.ScmErr . show
 
 run :: String -> Either T.ScmErr T.Exp
-run input = fmapL toScmErr $ parse expression "yascm" (eatComment input)
+run = fmapL toScmErr . parse expr "yascm" . eatComment
 
 runList :: String -> Either T.ScmErr [T.Exp]
-runList input = fmapL toScmErr $ parse expressions "yascm" (eatComment input)
+runList = fmapL toScmErr . parse exprs "yascm" . eatComment
