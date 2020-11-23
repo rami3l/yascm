@@ -3,8 +3,8 @@ module Parser
     , runList
     ) where
 import           Text.ParserCombinators.Parsec
+import           Data.Either.Combinators
 import           Data.List
-import           Data.EitherR
 import qualified Types                         as T
 
 eatComment :: String -> String
@@ -84,7 +84,7 @@ toScmErr :: ParseError -> T.ScmErr
 toScmErr = T.ScmErr . show
 
 run :: String -> Either T.ScmErr T.Exp
-run = fmapL toScmErr . parse expr "yascm" . eatComment
+run = mapLeft toScmErr . parse expr "yascm" . eatComment
 
 runList :: String -> Either T.ScmErr [T.Exp]
-runList = fmapL toScmErr . parse exprs "yascm" . eatComment
+runList = mapLeft toScmErr . parse exprs "yascm" . eatComment

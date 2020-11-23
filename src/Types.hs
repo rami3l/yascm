@@ -9,8 +9,10 @@ module Types
     , Types.lookup
     , insertValue
     , setValue
-    )
-where
+    ) where
+import           Control.Monad.Trans.Class
+import           Control.Monad.Trans.Maybe
+import           GHC.Base
 import qualified Data.Map                      as Map
 import           Data.IORef
 import           Data.Maybe
@@ -42,40 +44,41 @@ instance Show ScmPrimitive where
 makePrim :: ([Exp] -> Either ScmErr Exp) -> Exp
 makePrim = Primitive . ScmPrimitive
 
-data ScmClosure = ScmClosure {
-    -- (List (List (vars) : defs)) = body
-    body :: Exp,
-    env :: IORef Env
-}
+data ScmClosure = ScmClosure
+    {
+    -- body := (List (List (vars) : defs))
+      body :: Exp
+    , env  :: IORef Env
+    }
 
 instance Show ScmClosure where
     show (ScmClosure body' _) =
         let (List (List vars : _)) = body' in "<Closure: " ++ show vars ++ ">"
 
-newtype ScmErr = ScmErr {
-    reason :: String
-}
+newtype ScmErr = ScmErr
+    { reason :: String
+    }
 
 instance Show ScmErr where
     show = reason
 
-data Env = Env {
-    dict :: Map.Map String Exp,
-    outer :: Maybe (IORef Env)
-}
+data Env = Env
+    { dict  :: Map.Map String Exp
+    , outer :: Maybe (IORef Env)
+    }
 
 fromOuter :: IORef Env -> Env
-fromOuter fromEnvBox = Env Map.empty (Just fromEnvBox)
+fromOuter fromEnvBox = Env Map.empty $ Just fromEnvBox
 
 {-| Find the definition of a Symbol -}
-lookup :: String -> IORef Env -> IO (Maybe Exp)
+lookup :: String -> IORef Env -> MaybeT IO Exp
 lookup s envBox = do
-    env' <- readIORef envBox
+    env' <- lift $ readIORef envBox
     case Map.lookup s (dict env') of
-        Just def -> return (Just def)
-        Nothing  -> case outer env' of
-            Just o  -> Types.lookup s o
-            Nothing -> return Nothing
+        Just def -> return def
+        Nothing  -> do
+            outerEnv <- MaybeT . returnIO . outer $ env'
+            Types.lookup s outerEnv
 
 insertValue :: String -> Exp -> IORef Env -> IO ()
 insertValue sym def envBox = do
@@ -87,7 +90,7 @@ setValue sym def envBox = do
     (Env d mo) <- readIORef envBox
     let isLocal = isJust $ Map.lookup sym d
     isDefined <- do
-        res <- Types.lookup sym envBox
+        res <- runMaybeT $ Types.lookup sym envBox
         return $ isJust res
 
     if not isLocal && isDefined

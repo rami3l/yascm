@@ -4,6 +4,7 @@ import qualified Repl                          as R
 import           Data.IORef
 import qualified ArgParse                      as Arg
 import           Options.Applicative
+import           Control.Monad.Trans.Except
 
 welcomeBanner :: String
 welcomeBanner = "Welcome to yascm, a simple Scheme interpreter."
@@ -36,13 +37,13 @@ dispatch a = do
 
     let readSourceFile path = do
             contents <- readFile path
-            _        <- R.runScheme contents globalEnv
+            _        <- runExceptT $ R.runScheme contents globalEnv
             return ()
 
     let readSourceFileVerbose path = do
             putStr $ ".. Reading `" ++ path ++ "`: "
             contents <- readFile path
-            res      <- R.runScheme contents globalEnv
+            res      <- runExceptT $ R.runScheme contents globalEnv
             case res of
                 Right _ -> putStrLn "Done."
                 Left  e -> print e

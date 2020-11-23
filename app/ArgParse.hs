@@ -1,16 +1,14 @@
 module ArgParse
     ( Args(..)
     , args
-    )
-where
+    ) where
 
 import           Options.Applicative
-import           Data.Semigroup                 ( (<>) )
 
-data Args = Args {
-    fin :: Maybe String,
-    repl :: Bool
-}
+data Args = Args
+    { fin  :: Maybe String
+    , repl :: Bool
+    }
 
 args :: Parser Args
 args =

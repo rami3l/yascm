@@ -11,6 +11,7 @@ import qualified Parser                        as P
 import           System.Console.Haskeline
 import qualified Types                         as T
 import           Control.Monad.Trans.Class
+import           Control.Monad.Trans.Except
 
 repl :: IORef T.Env -> IO ()
 repl envBox = runInputT defaultSettings (loop envBox)
@@ -18,18 +19,16 @@ repl envBox = runInputT defaultSettings (loop envBox)
     loop :: IORef T.Env -> InputT IO ()
     loop envBox' = do
         mLine <- getInputLine ">> "
-        mLine & maybe
-            (return ())
-            (\line -> P.run line & either
-                (outputStrLn . show)
-                (\expr -> do
-                    mval <- lift $ E.eval expr envBox'
+        case mLine of
+            Nothing   -> return ()
+            Just line -> case P.run line of
+                Left  e    -> outputStrLn . show $ e
+                Right expr -> do
+                    mval <- lift . runExceptT $ E.eval expr envBox'
                     case mval of
                         Right T.Empty -> return ()
                         Right val     -> outputStrLn $ "=> " ++ show val
                         Left  e       -> outputStrLn $ show e
-                )
-            )
         loop envBox'
 
 -- Get a list of Scheme Expression String's, and return the corresponding output String's
@@ -41,11 +40,12 @@ runStrings xs envBox = foldl seedGen (return []) xs
         P.run x & either
             (\err -> return $ seed ++ [show err])
             (\expr -> do
-                val <- E.eval expr envBox
+                val <- runExceptT $ E.eval expr envBox
                 return $ seed ++ [show val]
             )
 
 -- Get a String of Scheme Expression's, then read and eval all of them
-runScheme :: String -> IORef T.Env -> IO (Either T.ScmErr T.Exp)
-runScheme str envBox =
-    P.runList str & either (return . Left) (`E.evalList` envBox)
+runScheme :: String -> IORef T.Env -> ExceptT T.ScmErr IO T.Exp
+runScheme str envBox = do
+    exprs <- except $ P.runList str
+    E.evalList exprs envBox

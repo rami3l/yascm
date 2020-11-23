@@ -3,55 +3,54 @@ module EvalApply
     , evalList
     ) where
 import           Data.IORef
+import           Data.Function
 import           Types
 import           Control.Monad
+import           Control.Monad.Trans.Class
+import           Control.Monad.Trans.Except
+import           Control.Monad.Trans.Maybe
 import qualified System.Exit                   as Exit
 
-handleLambda :: Exp -> [Exp] -> IORef Env -> IO (Either ScmErr Exp)
+handleLambda :: Exp -> [Exp] -> IORef Env -> ExceptT ScmErr IO Exp
 handleLambda exp' xs envBox = do
-    Right func <- eval exp' envBox
-    ms         <- forM xs (`eval` envBox)
-    Right args <- return $ sequenceA ms
+    func <- eval exp' envBox
+    args <- xs `forM` (`eval` envBox)
     apply func args
 
-evalList :: [Exp] -> IORef Env -> IO (Either ScmErr Exp)
+evalList :: [Exp] -> IORef Env -> ExceptT ScmErr IO Exp
 evalList xs envBox = do
-    forM_ (init xs) (`eval` envBox)
+    init xs `forM_` (`eval` envBox)
     eval (last xs) envBox
 
-eval :: Exp -> IORef Env -> IO (Either ScmErr Exp)
-eval n@(  Number _) _      = return $ Right n
+eval :: Exp -> IORef Env -> ExceptT ScmErr IO Exp
+eval n@(  Number _) _      = return n
 
-eval str@(String _) _      = return $ Right str
+eval str@(String _) _      = return str
 
-eval (    Symbol s) envBox = do
-    mDef <- Types.lookup s envBox
-    return $ maybe
-        (Left $ ScmErr $ "eval: Symbol \"" ++ s ++ "\" undefined.")
-        Right
-        mDef
+eval (    Symbol s) envBox = s & (`Types.lookup` envBox) & maybeToExceptT
+    (ScmErr $ "eval: Symbol \"" ++ s ++ "\" undefined.")
 
-eval (List []) _ = return $ Left $ ScmErr "eval: got empty List"
+
+eval (List []) _ = throwE $ ScmErr "eval: got empty List"
 
 eval (List (lambda@(List _) : xs)) envBox = handleLambda lambda xs envBox
 
 eval (List ((Symbol "quote") : xs)) _ = case xs of
-    [sth] -> return $ Right sth
-    _     -> return $ Left $ ScmErr "quote: nothing to quote"
+    [sth] -> return sth
+    _     -> throwE $ ScmErr "quote: nothing to quote"
 
 eval (List ((Symbol "lambda") : xs)) envBox = do
     -- ! Here we want to clone a pointer, not to clone an Env.
-    closEnv <- newIORef $ fromOuter envBox
-    return
-        $ let t       = List xs
-              closure = ScmClosure t closEnv
-          in  Right $ Closure closure
+    closEnv <- lift $ newIORef (fromOuter envBox)
+    -- body := (List (List (vars) : defs))
+    let closure = ScmClosure (List xs) closEnv
+    return $ Closure closure
 
 eval (List ((Symbol "define") : xs)) envBox = case xs of
     [Symbol sym, def] -> do
-        Right evalDef <- eval def envBox
-        insertValue sym evalDef envBox
-        return $ Right Empty
+        evalDef <- eval def envBox
+        lift $ insertValue sym evalDef envBox
+        return Empty
 
     -- syntax sugar for func definition
     (List (func@(Symbol _) : args)) : defs ->
@@ -63,78 +62,75 @@ eval (List ((Symbol "define") : xs)) envBox = case xs of
                     ]
         in  eval desugared envBox
 
-    _ -> return $ Left $ ScmErr "define: nothing to define"
+    _ -> throwE $ ScmErr "define: nothing to define"
 
 eval (List ((Symbol "set!") : xs)) envBox = case xs of
     [Symbol sym, def] -> do
-        Right evalDef <- eval def envBox
-        setValue sym evalDef envBox
-        return $ Right Empty
-    _ -> return $ Left $ ScmErr "set!: nothing to set"
+        evalDef <- eval def envBox
+        lift $ setValue sym evalDef envBox
+        return Empty
+    _ -> throwE $ ScmErr "set!: nothing to set"
 
 eval (List [Symbol "if", cond, then', else']) envBox = do
-    mEvalCond <- eval cond envBox
-    case mEvalCond of
-        Left  e               -> return $ Left e
-        Right (Boolean True ) -> eval then' envBox
-        Right (Boolean False) -> eval else' envBox
-        Right _               -> return $ Left $ ScmErr "if: expected Boolean"
+    evalCond <- eval cond envBox
+    case evalCond of
+        Boolean True  -> eval then' envBox
+        Boolean False -> eval else' envBox
+        _             -> throwE $ ScmErr "if: expected Boolean"
 
-eval (List ((Symbol "if") : _)) _ = return $ Left $ ScmErr "if: ill-formed"
+eval (List ((Symbol "if") : _)) _ = throwE $ ScmErr "if: ill-formed"
 
 eval (List ((Symbol "cond") : t)) envBox =
-    let
-        evalTail [List [Symbol "else", then']] = eval then' envBox
+    let evalTail [List [Symbol "else", then']] = eval then' envBox
         evalTail ((List [cond, then']) : xs  ) = do
-            mEvalCond <- eval cond envBox
-            case mEvalCond of
-                Left  e               -> return $ Left e
-                Right (Boolean True ) -> eval then' envBox
-                Right (Boolean False) -> evalTail xs
-                Right _ -> return $ Left $ ScmErr "cond: expected Boolean"
-        evalTail _ = return $ Left $ ScmErr "cond: ill-formed"
-    in
-        evalTail t
+            evalCond <- eval cond envBox
+            case evalCond of
+                Boolean True  -> eval then' envBox
+                Boolean False -> evalTail xs
+                _             -> throwE $ ScmErr "cond: expected Boolean"
+        evalTail _ = throwE $ ScmErr "cond: ill-formed"
+    in  evalTail t
 
 eval (List ((Symbol "begin") : t)) envBox = evalList t envBox
 
 eval (List ((Symbol "exit" ) : t)) _      = case t of
-    []         -> Exit.exitSuccess
-    [Number 0] -> Exit.exitSuccess
-    [Number x] -> Exit.exitWith $ Exit.ExitFailure $ truncate x
-    _          -> return $ Left $ ScmErr "exit: invalid exit code"
+    []         -> lift Exit.exitSuccess
+    [Number 0] -> lift Exit.exitSuccess
+    [Number x] -> lift $ Exit.exitWith (Exit.ExitFailure $ truncate x)
+    _          -> throwE $ ScmErr "exit: invalid exit code"
 
 eval (List ((Symbol "display") : t)) envBox =
     let printElem x = do
-            Right val <- eval x envBox
-            print val
-            return $ Right Empty
+            val <- eval x envBox
+            lift $ print val
+            return Empty
     in  case t of
-            [] -> return (Left $ ScmErr "display: nothing to display")
+            [] -> throwE $ ScmErr "display: nothing to display"
             xs -> do
-                res     <- forM xs printElem
-                Right _ <- return $ sequenceA res
-                return $ Right Empty
+                _ <- xs `forM` printElem
+                return Empty
 
 eval (List ((Symbol "newline") : t)) _ = case t of
     [] -> do
-        putStrLn ""
-        return $ Right Empty
-    _ -> return $ Left $ ScmErr "newline: expected no arguments"
+        lift $ putStrLn ""
+        return Empty
+    _ -> throwE $ ScmErr "newline: expected no arguments"
 
 eval (List (func@(Symbol _) : t)) envBox = handleLambda func t envBox
 
-eval _ _ = return $ Left $ ScmErr "eval: unexpected Exp"
+eval _ _ = throwE $ ScmErr "eval: unexpected Exp"
 
-apply :: Exp -> [Exp] -> IO (Either ScmErr Exp)
+apply :: Exp -> [Exp] -> ExceptT ScmErr IO Exp
 -- func can only be Primitive or Closure
-apply (Primitive (ScmPrimitive prim      )) args = return $ prim args
+apply (Primitive (ScmPrimitive prim      )) args = except $ prim args
 
 apply (Closure   (ScmClosure body' envBox)) args = do
     let (List (List vars : defs)) = body'
-    env'     <- readIORef envBox
-    localEnv <- newIORef env'
-    forM_ (zip vars args) (\(Symbol i, arg) -> insertValue i arg localEnv)
+    env'     <- lift $ readIORef envBox
+    localEnv <- lift $ newIORef env'
+    zip vars args
+        `forM_` (\(Symbol i, arg) -> insertValue i arg localEnv)
+        &       lift
     evalList defs localEnv
 
-apply _ _ = undefined
+apply _ _ = throwE $ ScmErr "apply: unexpected Exp"

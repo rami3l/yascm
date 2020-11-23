@@ -11,10 +11,10 @@ dependencies:
   - haskeline
   - optparse-applicative
   - transformers
-  - errors
+  - either
 
 executables:
-  yascm:
+  yascm-app:
     main: Main.hs
     source-dirs: app/
     dependencies:
