@@ -94,10 +94,11 @@ eval (List ((Symbol "cond") : t)) envBox =
 eval (List ((Symbol "begin") : t)) envBox = evalList t envBox
 
 eval (List ((Symbol "exit" ) : t)) _      = case t of
-    []         -> lift Exit.exitSuccess
-    [Number 0] -> lift Exit.exitSuccess
-    [Number x] -> lift $ Exit.exitWith (Exit.ExitFailure $ truncate x)
-    _          -> throwE $ ScmErr "exit: invalid exit code"
+    []                 -> lift Exit.exitSuccess
+    [Number 0]         -> lift Exit.exitSuccess
+    [Number x] | x > 0 -> lift $ Exit.exitWith code
+        where code = Exit.ExitFailure $ truncate x
+    _ -> throwE $ ScmErr "exit: invalid exit code"
 
 eval (List ((Symbol "display") : t)) envBox =
     let printElem x = do
@@ -106,15 +107,11 @@ eval (List ((Symbol "display") : t)) envBox =
             return Empty
     in  case t of
             [] -> throwE $ ScmErr "display: nothing to display"
-            xs -> do
-                _ <- xs `forM` printElem
-                return Empty
+            xs -> xs `forM` printElem >> return Empty
 
 eval (List ((Symbol "newline") : t)) _ = case t of
-    [] -> do
-        lift $ putStrLn ""
-        return Empty
-    _ -> throwE $ ScmErr "newline: expected no arguments"
+    [] -> lift $ putStrLn "" >> return Empty
+    _  -> throwE $ ScmErr "newline: expected no arguments"
 
 eval (List (func@(Symbol _) : t)) envBox = handleLambda func t envBox
 
@@ -134,3 +131,4 @@ apply (Closure   (ScmClosure body' envBox)) args = do
     evalList defs localEnv
 
 apply _ _ = throwE $ ScmErr "apply: unexpected Exp"
+
