@@ -2,7 +2,7 @@ package com.github.rami3l.yascm
 
 import scala.util.Try
 
-/** Scheme expressions.
+/** A Scheme expression.
   */
 sealed trait Exp
 
@@ -12,7 +12,7 @@ case class Str(val value: String) extends Exp
 case class Num(val value: Double) extends Exp
 
 /** An unevaluated Scheme list.
-  * Only used as an AST component when expressing function calls,
+  * Only used as an AST component (eg. when expressing function calls),
   * does not appear in evaluation results.
   */
 case class ScmList(val value: List[Exp]) extends Exp
@@ -28,7 +28,7 @@ case object ScmNil extends INil with Exp
   * @param car The 1st expression.
   * @param cdr The 2nd expression.
   */
-case class Cons[T <: Exp](val car: Either[INil, T], val cdr: Either[INil, T])
+case class Cons[+T <: Exp](val car: Either[INil, T], val cdr: Either[INil, T])
     extends Exp
 
 /** An anonymous function.
