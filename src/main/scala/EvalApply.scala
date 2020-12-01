@@ -1,7 +1,7 @@
 package com.github.rami3l.yascm
 import scala.util.{Try,Success,Failure}
 
-extension (env: Env):
+extension (env: Env) {
   def handleLambda(func: Exp, args: List[Exp]): Try[Exp] = Try {
     val func1 = env.eval(func).get
     val args1 = args.map { env.eval(_).get }
@@ -113,7 +113,7 @@ extension (env: Env):
       case _ => throw new Exception("eval: unexpected expression")
     }
   }
-
+}
 
 def apply(func: Exp, args: List[Exp]): Try[Exp] = Try {
   func match {
