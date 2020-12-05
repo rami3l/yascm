@@ -1,4 +1,4 @@
-package com.github.rami3l.yascm
+package io.github.rami3l.yascm
 
 import collection.mutable.HashMap
 

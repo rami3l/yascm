@@ -1,4 +1,4 @@
-package com.github.rami3l.yascm.app
+package io.github.rami3l.yascm.app
 
 object Main {
 
