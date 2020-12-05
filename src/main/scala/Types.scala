@@ -20,16 +20,14 @@ case class ScmList(val value: List[Exp]) extends Exp
 /** The special class signifying the end of a list.
   * Also used as an empty expression.
   */
-sealed trait INil
-case object ScmNil extends INil with Exp
+case object ScmNil extends Exp
 
 /** A `Cons` pair made up by two expressions.
   *
   * @param car The 1st expression.
   * @param cdr The 2nd expression.
   */
-case class Cons[+T <: Exp](val car: Either[INil, T], val cdr: Either[INil, T])
-    extends Exp
+case class Cons[+T <: Exp](val car: T, val cdr: T) extends Exp
 
 /** An anonymous function.
   *

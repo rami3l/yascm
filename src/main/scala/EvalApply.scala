@@ -1,4 +1,5 @@
 package io.github.rami3l.yascm
+
 import scala.util.{Try,Success,Failure}
 
 extension (env: Env) {
