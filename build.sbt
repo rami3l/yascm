@@ -6,9 +6,15 @@ lazy val root = project
     name := "dotty-simple",
     version := "0.1.0",
     scalaVersion := dottyVersion,
-    libraryDependencies ++= Seq(
-      "com.novocode" % "junit-interface" % "0.11" % "test"
-      // "org.scala-lang.modules" %% "scala-parser-combinators" % "1.1.2"
-      // "org.scalaz" %% "scalaz-core" % "7.3.2"
-    )
+    libraryDependencies ++= {
+      // Dependencies native to Scala 3
+      Seq(
+        "com.novocode" % "junit-interface" % "0.11" % "test"
+      ) ++
+        // Dependencies requiring Scala 2 compatible mode
+        Seq(
+          "org.scala-lang.modules" %% "scala-parser-combinators" % "1.1.2"
+          // "org.scalaz" %% "scalaz-core" % "7.3.2"
+        ).map(_.withDottyCompat(scalaVersion.value))
+    }
   )
