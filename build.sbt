@@ -8,6 +8,7 @@ lazy val root = project
     scalaVersion := dottyVersion,
     libraryDependencies ++= Seq(
       "com.novocode" % "junit-interface" % "0.11" % "test"
+      // "org.scala-lang.modules" %% "scala-parser-combinators" % "1.1.2"
       // "org.scalaz" %% "scalaz-core" % "7.3.2"
     )
   )

@@ -16,8 +16,8 @@ extension (env: Env) {
   def eval(exp: Exp): Try[Exp] = Try {
     exp match {
       // * Self-evaluating types.
-      case n @ Num(_) => n
-      case s @ Str(_) => s
+      case n as Num(_) => n
+      case s as Str(_) => s
 
       // * Variable evaluation by name.
       case Sym(s) =>
@@ -29,7 +29,7 @@ extension (env: Env) {
       case ScmList(Nil) => throw new Exception("eval: got empty function call")
       // Inline anonymous function invocation.
       // eg. ((lambda (x) (+ x 2)) 3) ;; => 5
-      case ScmList((func @ ScmList(_)) :: xs) => env.handleLambda(func, xs).get
+      case ScmList((func as ScmList(_)) :: xs) => env.handleLambda(func, xs).get
       // Quote.
       case ScmList(Sym("quote") :: xs) =>
         xs match {
@@ -56,7 +56,7 @@ extension (env: Env) {
           // Syntax sugar for function definition.
           // eg. (define (f x y) *defns*)
           // ->  (define f (lambda (x y) *defns*))
-          case ScmList((func @ Sym(_)) :: args) :: defns =>
+          case ScmList((func as Sym(_)) :: args) :: defns =>
             env.eval {
               ScmList(
                 Sym("define")
@@ -108,7 +108,7 @@ extension (env: Env) {
         ScmNil
       }
       // Call function by name.
-      case ScmList((func @ Sym(_)) :: args) => handleLambda(func, args).get
+      case ScmList((func as Sym(_)) :: args) => handleLambda(func, args).get
 
       case _ => throw new Exception("eval: unexpected expression")
     }
