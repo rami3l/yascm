@@ -23,10 +23,10 @@ extension (env: Env) {
       case Sym(s) =>
         env
           .lookup(s)
-          .getOrElse(throw new Exception(s"eval: Symbol `$s` undefined"))
+          .getOrElse(throw Exception(s"eval: Symbol `$s` undefined"))
 
       // * Function calls and keywords.
-      case ScmList(Nil) => throw new Exception("eval: got empty function call")
+      case ScmList(Nil) => throw Exception("eval: got empty function call")
       // Inline anonymous function invocation.
       // eg. ((lambda (x) (+ x 2)) 3) ;; => 5
       case ScmList((func as ScmList(_)) :: xs) => env.handleLambda(func, xs).get
@@ -34,13 +34,13 @@ extension (env: Env) {
       case ScmList(Sym("quote") :: xs) =>
         xs match {
           case quotee :: Nil => quotee
-          case _             => throw new Exception("quote: nothing to quote")
+          case _             => throw Exception("quote: nothing to quote")
         }
       // Anonymous function literal.
       // eg. (lambda (x y) *defns*)
       case ScmList(Sym("lambda") :: xs) => {
         // ! Here we want to clone a pointer, not to clone an Env.
-        val closEnv = new Env(outer = env)
+        val closEnv = Env(outer = env)
         Closure(body = ScmList(xs), closEnv)
       }
       // Definition.
@@ -65,7 +65,7 @@ extension (env: Env) {
                   :: Nil
               )
             }.get
-          case _ => throw new Exception("define: nothing to define")
+          case _ => throw Exception("define: nothing to define")
         }
       // Variable reset.
       case ScmList(Sym("set!") :: xs) =>
@@ -76,17 +76,17 @@ extension (env: Env) {
             env.setVal(sym, defn1)
             ScmNil
           }
-          case _ => throw new Exception("set!: nothing to set")
+          case _ => throw Exception("set!: nothing to set")
         }
       // Conditional expression.
       case ScmList(Sym("if") :: cond :: then1 :: else1 :: Nil) => {
         env.eval(cond).get match {
           case Bool(true)  => env.eval(then1).get
           case Bool(false) => env.eval(else1).get
-          case _           => throw new Exception("if: expected Bool")
+          case _           => throw Exception("if: expected Bool")
         }
       }
-      case ScmList(Sym("if") :: _) => throw new Exception("if: ill-formed")
+      case ScmList(Sym("if") :: _) => throw Exception("if: ill-formed")
       case ScmList(Sym("cond") :: tail) => {
         def evalTail(xs: List[Exp]): Try[Exp] = Try {
           xs match {
@@ -96,9 +96,9 @@ extension (env: Env) {
               env.eval(cond).get match {
                 case Bool(true)  => env.eval(then1).get
                 case Bool(false) => evalTail(xs1).get
-                case _           => throw new Exception("cond: expected Bool")
+                case _           => throw Exception("cond: expected Bool")
               }
-            case _ => throw new Exception("cond: ill-formed")
+            case _ => throw Exception("cond: ill-formed")
           }
         }
         evalTail(tail).get
@@ -110,7 +110,7 @@ extension (env: Env) {
       // Call function by name.
       case ScmList((func as Sym(_)) :: args) => handleLambda(func, args).get
 
-      case _ => throw new Exception("eval: unexpected expression")
+      case _ => throw Exception("eval: unexpected expression")
     }
   }
 }
@@ -121,12 +121,12 @@ def apply(func: Exp, args: List[Exp]): Try[Exp] = Try {
     case Primitive(prim) => prim(args).get
     case Closure(body, env) => {
       val ScmList(ScmList(vars) :: defns) = body
-      var localEnv = new Env(outer = env)
+      var localEnv = Env(outer = env)
       vars.zip(args).map { (ident, arg) =>
         localEnv.insertVal(ident.asInstanceOf[Sym].value, arg)
       }
       localEnv.evalList(defns).get
     }
-    case _ => throw new Exception("apply: unexpected expression")
+    case _ => throw Exception("apply: unexpected expression")
   }
 }

@@ -4,7 +4,7 @@ import collection.mutable.HashMap
 
 class Env(val dict: HashMap[String, Exp], val outer: Option[Env]) {
   def this(outer: Env) = {
-    this(new HashMap(), Some(outer))
+    this(HashMap(), Some(outer))
   }
 
   /** Find the definition of a symbol.
