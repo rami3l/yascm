@@ -17,7 +17,8 @@ extension (env: Env) {
   def eval(exp: Exp): Try[Exp] = Try {
     exp match {
       // * Self-evaluating types.
-      case n as Num(_) => n
+      case n as ScmInt(_) => n
+      case f as ScmDouble(_) => f
       case s as Str(_) => s
 
       // * Variable evaluation by name.

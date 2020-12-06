@@ -9,7 +9,8 @@ sealed trait Exp
 case class Bool(val value: Boolean) extends Exp
 case class Sym(val value: String) extends Exp
 case class Str(val value: String) extends Exp
-case class Num(val value: Double) extends Exp
+case class ScmInt(val value: Int) extends Exp
+case class ScmDouble(val value: Double) extends Exp
 
 /** An unevaluated Scheme list.
   * Only used as an AST component (eg. when expressing function calls),
