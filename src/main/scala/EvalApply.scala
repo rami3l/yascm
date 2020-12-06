@@ -41,7 +41,7 @@ extension (env: Env) {
       // eg. (lambda (x y) *defns*)
       case ScmList(Sym("lambda") :: xs) => {
         // ! Here we want to clone a pointer, not to clone an Env.
-        val closEnv = Env(outer = env)
+        val closEnv = env
         Closure(body = ScmList(xs), closEnv)
       }
       // Definition.
