@@ -7,13 +7,7 @@ import Ordering.Implicits._
 
 /** A Scheme expression.
   */
-sealed trait Exp {
-  def makeList(args: Seq[Exp]): Exp = args match {
-    case Nil => ScmNil
-    case Seq(x) => Cons(x, ScmNil)
-    case Seq(x, xs as _*) => Cons(x, makeList(xs))
-  }
-}
+sealed trait Exp
 
 case class ScmBool(val value: Boolean) extends Exp {
   override def toString: String = s"$value"
@@ -27,45 +21,13 @@ case class Str(val value: String) extends Exp {
   override def toString: String = s""""$value""""
 }
 
-trait ScmNum {
-
-}
-
 case class ScmInt(val value: Int) extends Exp {
   override def toString: String = s"$value"
   def toScmDouble: ScmDouble = ScmDouble(value)
-
-  def +(that: ScmInt) = ScmInt(value + that.value)
-  def -(that: ScmInt) = ScmInt(value - that.value)
-  def *(that: ScmInt) = ScmInt(value * that.value)
-  def /(that: ScmInt): ScmDouble = this.toScmDouble / that
-  def <(that: ScmInt) = ScmBool(value < that.value)
-  def >(that: ScmInt) = ScmBool(value > that.value)
-
-  def +(that: ScmDouble) = ScmDouble(value + that.value)
-  def -(that: ScmDouble) = ScmDouble(value - that.value)
-  def *(that: ScmDouble) = ScmDouble(value * that.value)
-  def /(that: ScmDouble): ScmDouble = this.toScmDouble / that
-  def <(that: ScmDouble) = ScmBool(value < that.value)
-  def >(that: ScmDouble) = ScmBool(value > that.value)
 }
 
 case class ScmDouble(val value: Double) extends Exp {
   override def toString: String = s"$value"
-
-  def +(that: ScmDouble) = ScmDouble(value + that.value)
-  def -(that: ScmDouble) = ScmDouble(value - that.value)
-  def *(that: ScmDouble) = ScmDouble(value * that.value)
-  def /(that: ScmDouble) = ScmDouble(value / that.value)
-  def <(that: ScmDouble) = ScmBool(value < that.value)
-  def >(that: ScmDouble) = ScmBool(value > that.value)
-
-  def +(that: ScmInt) = ScmDouble(value + that.value)
-  def -(that: ScmInt) = ScmDouble(value - that.value)
-  def *(that: ScmInt) = ScmDouble(value * that.value)
-  def /(that: ScmInt) = ScmDouble(value / that.value)
-  def <(that: ScmInt) = ScmBool(value < that.value)
-  def >(that: ScmInt) = ScmBool(value > that.value)
 }
 
 /** An unevaluated Scheme list.
@@ -125,4 +87,12 @@ case class Closure(val body: ScmList, val env: Env) extends Exp {
 
 case class Primitive(val value: Seq[Exp] => Try[Exp]) extends Exp {
   override def toString: String = "<Primitive>"
+}
+
+object ExpUtils {
+  def makeList(args: Seq[Exp]): Exp = args match {
+    case Nil => ScmNil
+    case Seq(x) => Cons(x, ScmNil)
+    case Seq(x, xs as _*) => Cons(x, makeList(xs))
+  }
 }
