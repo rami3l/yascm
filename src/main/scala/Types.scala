@@ -1,14 +1,21 @@
 package io.github.rami3l.yascm
 
 import scala.util.Try
-// import Numeric.Implicits._
-// import Ordering.Implicits._
+import scala.annotation.tailrec
+import Numeric.Implicits._
+import Ordering.Implicits._
 
 /** A Scheme expression.
   */
-sealed trait Exp
+sealed trait Exp {
+  def makeList(args: Seq[Exp]): Exp = args match {
+    case Nil => ScmNil
+    case Seq(x) => Cons(x, ScmNil)
+    case Seq(x, xs as _*) => Cons(x, makeList(xs))
+  }
+}
 
-case class Bool(val value: Boolean) extends Exp {
+case class ScmBool(val value: Boolean) extends Exp {
   override def toString: String = s"$value"
 }
 
@@ -20,33 +27,45 @@ case class Str(val value: String) extends Exp {
   override def toString: String = s""""$value""""
 }
 
+trait ScmNum {
+
+}
+
 case class ScmInt(val value: Int) extends Exp {
   override def toString: String = s"$value"
   def toScmDouble: ScmDouble = ScmDouble(value)
 
-  def +(that: ScmInt): ScmInt = ScmInt(value + that.value)
-  def -(that: ScmInt): ScmInt = ScmInt(value - that.value)
-  def *(that: ScmInt): ScmInt = ScmInt(value * that.value)
+  def +(that: ScmInt) = ScmInt(value + that.value)
+  def -(that: ScmInt) = ScmInt(value - that.value)
+  def *(that: ScmInt) = ScmInt(value * that.value)
   def /(that: ScmInt): ScmDouble = this.toScmDouble / that
+  def <(that: ScmInt) = ScmBool(value < that.value)
+  def >(that: ScmInt) = ScmBool(value > that.value)
 
-  def +(that: ScmDouble): ScmDouble = ScmDouble(value + that.value)
-  def -(that: ScmDouble): ScmDouble = ScmDouble(value - that.value)
-  def *(that: ScmDouble): ScmDouble = ScmDouble(value * that.value)
+  def +(that: ScmDouble) = ScmDouble(value + that.value)
+  def -(that: ScmDouble) = ScmDouble(value - that.value)
+  def *(that: ScmDouble) = ScmDouble(value * that.value)
   def /(that: ScmDouble): ScmDouble = this.toScmDouble / that
+  def <(that: ScmDouble) = ScmBool(value < that.value)
+  def >(that: ScmDouble) = ScmBool(value > that.value)
 }
 
 case class ScmDouble(val value: Double) extends Exp {
   override def toString: String = s"$value"
 
-  def +(that: ScmDouble): ScmDouble = ScmDouble(value + that.value)
-  def -(that: ScmDouble): ScmDouble = ScmDouble(value - that.value)
-  def *(that: ScmDouble): ScmDouble = ScmDouble(value * that.value)
-  def /(that: ScmDouble): ScmDouble = ScmDouble(value / that.value)
+  def +(that: ScmDouble) = ScmDouble(value + that.value)
+  def -(that: ScmDouble) = ScmDouble(value - that.value)
+  def *(that: ScmDouble) = ScmDouble(value * that.value)
+  def /(that: ScmDouble) = ScmDouble(value / that.value)
+  def <(that: ScmDouble) = ScmBool(value < that.value)
+  def >(that: ScmDouble) = ScmBool(value > that.value)
 
-  def +(that: ScmInt): ScmDouble = ScmDouble(value + that.value)
-  def -(that: ScmInt): ScmDouble = ScmDouble(value - that.value)
-  def *(that: ScmInt): ScmDouble = ScmDouble(value * that.value)
-  def /(that: ScmInt): ScmDouble = ScmDouble(value / that.value)
+  def +(that: ScmInt) = ScmDouble(value + that.value)
+  def -(that: ScmInt) = ScmDouble(value - that.value)
+  def *(that: ScmInt) = ScmDouble(value * that.value)
+  def /(that: ScmInt) = ScmDouble(value / that.value)
+  def <(that: ScmInt) = ScmBool(value < that.value)
+  def >(that: ScmInt) = ScmBool(value > that.value)
 }
 
 /** An unevaluated Scheme list.
@@ -58,11 +77,17 @@ case class ScmList(val value: List[Exp]) extends Exp {
     value.map(_.toString).mkString(start = "(", sep = " ", end = ")")
 }
 
+trait ConsCell {
+  def isList: Boolean
+}
+
 /** The special class signifying the end of a list.
+  * Also regarded as an empty list.
   * Also used as an empty expression.
   */
-case object ScmNil extends Exp {
+case object ScmNil extends ConsCell with Exp {
   override def toString: String = "()"
+  def isList: Boolean = true
 }
 
 /** A `Cons` pair made up by two expressions.
@@ -70,8 +95,16 @@ case object ScmNil extends Exp {
   * @param car The 1st expression.
   * @param cdr The 2nd expression.
   */
-case class Cons[+T <: Exp](val car: T, val cdr: T) extends Exp {
+case class Cons(val car: Exp, val cdr: Exp) extends ConsCell with Exp {
   override def toString: String = s"($car . $cdr)"
+
+  @tailrec
+  final def isList: Boolean = (car, cdr) match {
+    case (Cons(_, _), _)      => false
+    case (_, ScmNil)          => true
+    case (_, t as Cons(_, _)) => t.isList
+    case (_, _)               => false
+  }
 }
 
 /** An anonymous function.
@@ -90,6 +123,6 @@ case class Closure(val body: ScmList, val env: Env) extends Exp {
   }
 }
 
-case class Primitive(val value: List[Exp] => Try[Exp]) extends Exp {
+case class Primitive(val value: Seq[Exp] => Try[Exp]) extends Exp {
   override def toString: String = "<Primitive>"
 }

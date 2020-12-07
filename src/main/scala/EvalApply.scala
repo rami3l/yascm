@@ -21,6 +21,13 @@ extension (env: Env) {
       case f as ScmDouble(_) => f
       case s as Str(_) => s
 
+      // * Booleans and other unchangeable constants.
+      // No, we should not learn Python 2, where the booleans
+      // are part of the prelude!
+      case Sym("#t") => ScmBool(true)
+      case Sym("#f") => ScmBool(false)
+      case Sym("nil") => ScmNil
+
       // * Variable evaluation by name.
       case Sym(s) =>
         env
@@ -83,8 +90,8 @@ extension (env: Env) {
       // Conditional expression.
       case ScmList(Sym("if") :: cond :: then1 :: else1 :: Nil) => {
         env.eval(cond).get match {
-          case Bool(true)  => env.eval(then1).get
-          case Bool(false) => env.eval(else1).get
+          case ScmBool(true)  => env.eval(then1).get
+          case ScmBool(false) => env.eval(else1).get
           case _           => throw Exception("if: expected Bool")
         }
       }
@@ -96,8 +103,8 @@ extension (env: Env) {
               env.eval(then1).get
             case ScmList(cond :: then1 :: Nil) :: xs1 =>
               env.eval(cond).get match {
-                case Bool(true)  => env.eval(then1).get
-                case Bool(false) => evalTail(xs1).get
+                case ScmBool(true)  => env.eval(then1).get
+                case ScmBool(false) => evalTail(xs1).get
                 case _           => throw Exception("cond: expected Bool")
               }
             case _ => throw Exception("cond: ill-formed")
