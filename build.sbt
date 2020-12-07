@@ -13,7 +13,8 @@ lazy val root = project
       ) ++
         // Dependencies requiring Scala 2 compatible mode
         Seq(
-          "org.scala-lang.modules" %% "scala-parser-combinators" % "1.1.2"
+          "org.scala-lang.modules" %% "scala-parser-combinators" % "1.1.2",
+          "org.hamcrest" % "hamcrest" % "2.2" % Test
           // "org.scalaz" %% "scalaz-core" % "7.3.2"
         ).map(_.withDottyCompat(scalaVersion.value))
     }
