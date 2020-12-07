@@ -1,6 +1,8 @@
 package io.github.rami3l.yascm
 
 import scala.util.Try
+// import Numeric.Implicits._
+// import Ordering.Implicits._
 
 /** A Scheme expression.
   */
@@ -20,10 +22,31 @@ case class Str(val value: String) extends Exp {
 
 case class ScmInt(val value: Int) extends Exp {
   override def toString: String = s"$value"
+  def toScmDouble: ScmDouble = ScmDouble(value)
+
+  def +(that: ScmInt): ScmInt = ScmInt(value + that.value)
+  def -(that: ScmInt): ScmInt = ScmInt(value - that.value)
+  def *(that: ScmInt): ScmInt = ScmInt(value * that.value)
+  def /(that: ScmInt): ScmDouble = this.toScmDouble / that
+
+  def +(that: ScmDouble): ScmDouble = ScmDouble(value + that.value)
+  def -(that: ScmDouble): ScmDouble = ScmDouble(value - that.value)
+  def *(that: ScmDouble): ScmDouble = ScmDouble(value * that.value)
+  def /(that: ScmDouble): ScmDouble = this.toScmDouble / that
 }
 
 case class ScmDouble(val value: Double) extends Exp {
   override def toString: String = s"$value"
+
+  def +(that: ScmDouble): ScmDouble = ScmDouble(value + that.value)
+  def -(that: ScmDouble): ScmDouble = ScmDouble(value - that.value)
+  def *(that: ScmDouble): ScmDouble = ScmDouble(value * that.value)
+  def /(that: ScmDouble): ScmDouble = ScmDouble(value / that.value)
+
+  def +(that: ScmInt): ScmDouble = ScmDouble(value + that.value)
+  def -(that: ScmInt): ScmDouble = ScmDouble(value - that.value)
+  def *(that: ScmInt): ScmDouble = ScmDouble(value * that.value)
+  def /(that: ScmInt): ScmDouble = ScmDouble(value / that.value)
 }
 
 /** An unevaluated Scheme list.

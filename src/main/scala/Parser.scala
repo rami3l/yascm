@@ -1,6 +1,7 @@
 package io.github.rami3l.yascm
 
 import scala.util.parsing.combinator._
+import scala.util.Try
 
 object ScmParser extends JavaTokenParsers {
   def symbol: Parser[Exp] = {
@@ -28,4 +29,14 @@ object ScmParser extends JavaTokenParsers {
   }
 
   def expr: Parser[Exp] = str | quoted | list | atom
+
+  def eliminateComments(s: String): String = {
+    s.linesIterator
+      .map { _.split(' ').takeWhile(w => !w.startsWith(";")).mkString(" ") }
+      .mkString(sep = "\n")
+  }
+
+  def run(s: String): Try[List[Exp]] = Try {
+    parse(expr.+, eliminateComments(s)).get
+  }
 }
