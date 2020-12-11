@@ -16,10 +16,12 @@ object ScmParser extends JavaTokenParsers {
   }
 
   def str: Parser[Exp] = stringLiteral ^^ { Str(_) }
-  def int: Parser[Exp] = wholeNumber ^^ { i => ScmInt(i.toInt) }
-  def decimal: Parser[Exp] = decimalNumber ^^ { f => ScmDouble(f.toDouble) }
-  def number: Parser[Exp] = int | decimal
-  def atom: Parser[Exp] = number | symbol
+  def int: Parser[Exp] = """[+-]?\d+""".r ^^ { i => ScmInt(i.toInt) }
+  def decimal: Parser[Exp] = """[+-]?(\.\d+|\d+\.\d*)""".r ^^ { f =>
+    ScmDouble(f.toDouble)
+  }
+  def number: Parser[Exp] = decimal | int
+  // def atom: Parser[Exp] = number | symbol
 
   def list: Parser[Exp] = nil | dottedList | regularList
   def nil: Parser[Exp] = "(" ~ ")" ^^ { _ => ScmNil }
@@ -29,7 +31,7 @@ object ScmParser extends JavaTokenParsers {
     case x ~ _ ~ y => Cons(car = x, cdr = y)
   }
 
-  def expr: Parser[Exp] = str | quoted | list | atom
+  def expr: Parser[Exp] = number | str | quoted | list | symbol
 
   def eliminateComments(s: String): String = {
     s.linesIterator

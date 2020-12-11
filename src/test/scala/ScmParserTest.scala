@@ -43,7 +43,11 @@ class ScmParserTest {
 
   @Test def handleSyntaxSugar = checkParse(
     "(quote (1 2 a))" -> "(quote (1 2 a))",
-    "'(1 2 a)" -> "(quote (1 2 a))"
+    "'(1 2 a)" -> "(quote (1 2 a))",
+    "(1 . 2)" -> "(1 . 2)",
+    "(1 . 2.2)" -> "(1 . 2.2)",
+    "(1.1 . 2)" -> "(1.1 . 2)",
+    // "(1 .2)" -> "(1 0.2)",
+    "(1. 2)" -> "(1.0 2)"
   )
-
 }

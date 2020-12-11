@@ -41,7 +41,9 @@ class ScmInterpreterTest {
   @Test def basicFuncDef = checkIo(
     "(define x 3)" -> "()",
     "x" -> "3",
-    "'()" -> "()",
+    "(define y 101.1)" -> "()",
+    "y" -> "101.1",
+    "((lambda (x) (+ x 1)) 101.1)" -> "102.1",
     "(define inc (lambda (x) (+ x 1)))" -> "()",
     "(inc 100)" -> "101",
     "(inc x)" -> "4",

@@ -131,7 +131,7 @@ def apply(func: Exp, args: List[Exp]): Try[Exp] = Try {
     case Primitive(prim) => prim(args).get
     case Closure(body, env) => {
       val ScmList(ScmList(vars) :: defns) = body
-      var localEnv = Env(outer = env)
+      val localEnv = Env(outer = env)
       vars.zip(args).map { (ident, arg) =>
         localEnv.insertVal(ident.asInstanceOf[Sym].value, arg)
       }
