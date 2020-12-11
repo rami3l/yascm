@@ -6,15 +6,16 @@ import org.junit.Assert._
 import org.hamcrest.Matchers._
 
 class ScmParserTest {
-  def checkParseList(i: Seq[(String, String)]): Unit = {
-    i.foreach { case (input, expected) =>
+  def checkParse(pairs: (String, String)*): Unit = {
+    pairs.foreach { case (input, expected) =>
+      // Print all the expressions à la Lisp, seperated with spaces.
       assertThat(ScmParser.run(input).get.mkString(sep = " "), is(expected))
     }
   }
 
-  @Test def simpleParsing = checkParseList {
+  @Test def simpleParsing = {
     val res = "(define inc (lambda (x) (+ x 1))) (inc 2)"
-    Seq(
+    checkParse(
       res -> res,
       "(define inc (lambda (x) (+ x 1)))\n(inc 2)" -> res,
       """(define inc
@@ -24,9 +25,9 @@ class ScmParserTest {
     )
   }
 
-  @Test def handleComment = checkParseList {
+  @Test def handleComment = {
     val res = "(define inc (lambda (x) (+ x 1))) (inc 2)"
-    Seq(
+    checkParse(
       """(define inc (lambda (x) (+ x 1))) ; this is a function
         |(inc 2)""".stripMargin -> res,
       """(define inc (lambda (x) (+ x 1))) ; this is a function
@@ -39,4 +40,10 @@ class ScmParserTest {
         |(inc 2)""".stripMargin -> res
     )
   }
+
+  @Test def handleSyntaxSugar = checkParse(
+    "(quote (1 2 a))" -> "(quote (1 2 a))",
+    "'(1 2 a)" -> "(quote (1 2 a))"
+  )
+
 }

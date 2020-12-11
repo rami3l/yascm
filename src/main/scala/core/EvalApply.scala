@@ -42,6 +42,7 @@ extension (env: Env) {
       // Quote.
       case ScmList(Sym("quote") :: xs) =>
         xs match {
+          case (l as ScmList(_)) :: Nil => l.toConsCell
           case quotee :: Nil => quotee
           case _             => throw Exception("quote: nothing to quote")
         }

@@ -37,9 +37,19 @@ case class ScmDouble(val value: Double) extends Exp {
 case class ScmList(val value: List[Exp]) extends Exp {
   override def toString: String =
     value.map(_.toString).mkString(start = "(", sep = " ", end = ")")
+  
+  private def toConsCellImpl(l: List[Exp]): ConsCell = {
+    if (l.isEmpty) {
+      ScmNil
+    } else {
+      Cons(car = l.head, cdr = toConsCellImpl(l.tail))
+    }
+  }
+
+  def toConsCell: ConsCell = toConsCellImpl(value)
 }
 
-trait ConsCell {
+sealed trait ConsCell extends Exp {
   def isList: Boolean
 }
 
@@ -47,7 +57,7 @@ trait ConsCell {
   * Also regarded as an empty list.
   * Also used as an empty expression.
   */
-case object ScmNil extends ConsCell with Exp {
+case object ScmNil extends ConsCell {
   override def toString: String = "()"
   def isList: Boolean = true
 }
@@ -57,12 +67,24 @@ case object ScmNil extends ConsCell with Exp {
   * @param car The 1st expression.
   * @param cdr The 2nd expression.
   */
-case class Cons(val car: Exp, val cdr: Exp) extends ConsCell with Exp {
-  override def toString: String = s"($car . $cdr)"
+case class Cons(val car: Exp, val cdr: Exp) extends ConsCell {
+  def tryToList: Try[List[Exp]] = Try {
+    this match {
+      case Cons(car, ScmNil) => List(car)
+      case Cons(car, cdr)    => car :: cdr.asInstanceOf[Cons].tryToList.get
+    }
+  }
+
+  override def toString: String = {
+    if (isList) {
+      tryToList.get.mkString(start = "(", sep = " ", end = ")")
+    } else {
+      s"($car . $cdr)"
+    }
+  }
 
   @tailrec
   final def isList: Boolean = (car, cdr) match {
-    case (Cons(_, _), _)      => false
     case (_, ScmNil)          => true
     case (_, t as Cons(_, _)) => t.isList
     case (_, _)               => false
