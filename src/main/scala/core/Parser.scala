@@ -16,18 +16,21 @@ object ScmParser extends JavaTokenParsers {
   }
 
   def str: Parser[Exp] = stringLiteral ^^ { Str(_) }
-  def int: Parser[Exp] = """[+-]?\d+""".r ^^ { i => ScmInt(i.toInt) }
+
   def decimal: Parser[Exp] = """[+-]?(\.\d+|\d+\.\d*)""".r ^^ { f =>
     ScmDouble(f.toDouble)
   }
+
+  def int: Parser[Exp] = """[+-]?\d+""".r ^^ { i => ScmInt(i.toInt) }
   def number: Parser[Exp] = decimal | int
-  // def atom: Parser[Exp] = number | symbol
 
   def list: Parser[Exp] = nil | dottedList | regularList
   def nil: Parser[Exp] = "(" ~ ")" ^^ { _ => ScmNil }
   def regularList: Parser[Exp] = "(" ~> expr.+ <~ ")" ^^ ScmList
 
-  def dottedList: Parser[Exp] = "(" ~> (expr ~ "." ~ expr) <~ ")" ^^ {
+  // In a dotted list, it is required to add some whitespace characters after
+  // the dot, in order to avoid ambiguities with decimals.
+  def dottedList: Parser[Exp] = "(" ~> (expr ~ """\.\s+""".r ~ expr) <~ ")" ^^ {
     case x ~ _ ~ y => Cons(car = x, cdr = y)
   }
 
