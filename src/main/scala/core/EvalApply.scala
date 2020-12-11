@@ -130,11 +130,18 @@ def apply(func: Exp, args: List[Exp]): Try[Exp] = Try {
     // `func` can only be Primitive or Closure.
     case Primitive(prim) => prim(args).get
     case Closure(body, env) => {
-      val ScmList(ScmList(vars) :: defns) = body
+      val ScmList(varsList :: defns) = body
       val localEnv = Env(outer = env)
-      vars.zip(args).map { (ident, arg) =>
-        localEnv.insertVal(ident.asInstanceOf[Sym].value, arg)
+
+      varsList match {
+        case ScmList(vars) =>
+          vars.zip(args).map { (ident, arg) =>
+            localEnv.insertVal(ident.asInstanceOf[Sym].value, arg)
+          }
+        case ScmNil => {}
+        case _      => throw Exception("apply: unexpected expression")
       }
+
       localEnv.evalList(defns).get
     }
     case _ => throw Exception("apply: unexpected expression")
