@@ -147,10 +147,14 @@ class ScmInterpreterTest {
     "(define (abs x) (if (>= x 0) x (- 0 x)))" -> "()",
     """(define (newton guess function derivative epsilon)
       |    (define guess2 (- guess (/ (function guess) (derivative guess))))
-      |        (if (< (abs (- guess guess2)) epsilon) guess2
-      |    (newton guess2 function derivative epsilon)))""".stripMargin -> "()",
+      |    (if (< (abs (- guess guess2)) epsilon)
+      |        guess2
+      |        (newton guess2 function derivative epsilon)))""".stripMargin -> "()",
     """(define (square-root a)
-      |    (newton 1 (lambda (x) (- (* x x) a)) (lambda (x) (* 2 x)) 0.00000001))""".stripMargin -> "()",
+      |    (newton 1
+      |            (lambda (x) (- (* x x) a))
+      |            (lambda (x) (* 2 x))
+      |            0.00000001))""".stripMargin -> "()",
     "(> (square-root 200) 14.14213)" -> "#t",
     "(< (square-root 200) 14.14215)" -> "#t"
   )
