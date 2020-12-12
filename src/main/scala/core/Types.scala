@@ -10,7 +10,7 @@ import Ordering.Implicits._
 sealed trait Exp
 
 case class ScmBool(val value: Boolean) extends Exp {
-  override def toString: String = s"$value"
+  override def toString: String = if (value) "#t" else "#f"
 }
 
 case class Sym(val value: String) extends Exp {

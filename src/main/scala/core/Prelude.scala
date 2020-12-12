@@ -129,7 +129,7 @@ object Prelude {
 
   def cdr(xs: Seq[Exp]): Try[Exp] = Try {
     xs match {
-      case Seq(Cons(cdr, _)) => cdr
+      case Seq(Cons(_, cdr)) => cdr
       case _                 => throw Exception("cdr: expected a cons")
     }
   }

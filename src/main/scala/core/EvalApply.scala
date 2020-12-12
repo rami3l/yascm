@@ -9,7 +9,7 @@ extension (env: Env) {
     apply(func1, args1).get
   }
 
-  def evalList(exps: List[Exp]): Try[Exp] = Try {
+  def evalList(exps: Seq[Exp]): Try[Exp] = Try {
     exps.init.foreach { env.eval(_).get }
     env.eval(exps.last).get
   }
@@ -113,6 +113,7 @@ extension (env: Env) {
         }
         evalTail(tail).get
       }
+      case ScmList(Sym("begin") :: xs) => env.evalList(xs).get
       case ScmList(Sym("display") :: xs) => {
         xs.foreach { println(_) }
         ScmNil
