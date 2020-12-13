@@ -12,7 +12,7 @@ class ScmInterpreterTest {
   def checkIo(pairs: (String, String)*): Unit = {
     // I feel a bit sad for Scala: the reference to `prelude` is immutable,
     // but the underlying data is mutable.
-    val prelude = Prelude.env
+    val prelude = ScmPrelude.env
     pairs.foreach { case (expStr, expected) =>
       val res = prelude.eval(parse(expStr)).get
       assertThat(res.toString, is(expected))

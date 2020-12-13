@@ -1,12 +1,10 @@
-package io.github.rami3l.yascm.app
+package io.github.rami3l.yascm.cli
+
+import io.github.rami3l.yascm._
 
 object Main {
-
   def main(args: Array[String]): Unit = {
-    println("Hello world!")
-    println(msg)
+    println("Welcome to yascm, a simple Scheme interpreter.")
+    ScmInterpreter.repl(ScmPrelude.env)
   }
-
-  def msg = "I was compiled by dotty :)"
-
 }

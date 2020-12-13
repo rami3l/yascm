@@ -3,7 +3,7 @@ package io.github.rami3l.yascm
 import scala.util.Try
 import collection.mutable.HashMap
 
-object Prelude {
+object ScmPrelude {
   def env = Env(
     outer = None,
     dict = HashMap(
