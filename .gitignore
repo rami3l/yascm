@@ -10,7 +10,9 @@ dist/*
 target/
 lib_managed/
 src_managed/
-project/
+project/*
+!project/plugins.sbt
+# !project/build.properties
 # project/boot/
 # project/plugins/project/
 
