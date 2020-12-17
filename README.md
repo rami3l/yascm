@@ -1,21 +1,15 @@
 # yascm
 
-Yet Another SCheMe interpreter, this time in Haskell!  
+Yet Another SCheMe interpreter, this time in Scala!  
 PS: This project is a rewritten version of [rusk] interpreter, originally written in Rust.  
 
 [rusk]: https://github.com/rami3l/rusk
 
 ## Todo
 
-- String support
-- Proper cons (?)
-- Load source file
-- stdlib written in Scheme
-- I/O primitives
-
-## Notes
-
-- This project uses `hpack`. To build it using `stack build`, run `hpack` to generate the `.cabal` file.
+- `exit`
+- Proper REPL
+- Compiler (?)
 
 ## Reference
 
