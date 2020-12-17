@@ -1,24 +1,29 @@
-dist
-dist-*
-cabal-dev
-*.o
-*.hi
-*.hie
-*.chi
-*.chs.h
-*.dyn_o
-*.dyn_hi
-.hpc
-.hsenv
-.cabal-sandbox/
-cabal.sandbox.config
-*.prof
-*.aux
-*.hp
-*.eventlog
-.stack-work/
-cabal.project.local
-cabal.project.local~
-.HTF/
-.ghc.environment.*
-*.cabal
+*.class
+*.log
+
+# sbt specific
+.bsp/
+.cache/
+.history/
+.lib/
+dist/*
+target/
+lib_managed/
+src_managed/
+project/*
+!project/plugins.sbt
+# !project/build.properties
+# project/boot/
+# project/plugins/project/
+
+# Scala-IDE specific
+.scala_dependencies
+.worksheet
+.idea
+
+# Dotty specific
+.dotty-ide*
+
+# Metals specifig
+.metals/
+.bloop/

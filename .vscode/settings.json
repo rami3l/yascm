@@ -1,10 +1,16 @@
 {
     "cSpell.words": [
         "Haskeline",
+        "defns",
         "desugared",
         "foldl",
+        "itertools",
+        "scalaz",
         "unlines",
         "unwords",
         "yascm"
-    ]
+    ],
+    "files.watcherExclude": {
+        "**/target": true
+    }
 }
