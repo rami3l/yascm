@@ -31,13 +31,13 @@ case class ScmDouble(val value: Double) extends Exp {
 }
 
 /** An unevaluated Scheme list.
-  * Only used as an AST component (eg. when expressing function calls),
+  * Only used@ an AST component (eg. when expressing function calls),
   * does not appear in evaluation results.
   */
 case class ScmList(val value: List[Exp]) extends Exp {
   override def toString: String =
     value.map(_.toString).mkString(start = "(", sep = " ", end = ")")
-  
+
   private def toConsCellImpl(l: List[Exp]): ConsCell = {
     if (l.isEmpty) {
       ScmNil
@@ -85,9 +85,9 @@ case class Cons(val car: Exp, val cdr: Exp) extends ConsCell {
 
   @tailrec
   final def isList: Boolean = (car, cdr) match {
-    case (_, ScmNil)          => true
-    case (_, t as Cons(_, _)) => t.isList
-    case (_, _)               => false
+    case (_, ScmNil)         => true
+    case (_, t @ Cons(_, _)) => t.isList
+    case (_, _)              => false
   }
 }
 
@@ -113,8 +113,8 @@ case class Primitive(val value: Seq[Exp] => Try[Exp]) extends Exp {
 
 object ExpUtils {
   def makeList(args: Seq[Exp]): Exp = args match {
-    case Nil => ScmNil
-    case Seq(x) => Cons(x, ScmNil)
-    case Seq(x, xs as _*) => Cons(x, makeList(xs))
+    case Nil             => ScmNil
+    case Seq(x)          => Cons(x, ScmNil)
+    case Seq(x, xs @ _*) => Cons(x, makeList(xs))
   }
 }

@@ -29,5 +29,4 @@ class Env(val dict: HashMap[String, Exp], val outer: Option[Env]) {
       this.insertVal(sym, defn)
     }
   }
-
 }

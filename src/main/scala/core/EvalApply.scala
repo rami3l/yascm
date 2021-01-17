@@ -6,7 +6,7 @@ extension (env: Env) {
   def handleLambda(func: Exp, args: List[Exp]): Try[Exp] = Try {
     val func1 = env.eval(func).get
     val args1 = args.map { env.eval(_).get }
-    apply(func1, args1).get
+    func1.apply(args1).get
   }
 
   def evalList(exps: Seq[Exp]): Try[Exp] = Try {
@@ -17,9 +17,9 @@ extension (env: Env) {
   def eval(exp: Exp): Try[Exp] = Try {
     exp match {
       // * Self-evaluating types.
-      case n as ScmInt(_) => n
-      case f as ScmDouble(_) => f
-      case s as Str(_) => s
+      case n@ ScmInt(_) => n
+      case f@ ScmDouble(_) => f
+      case s@ Str(_) => s
 
       // * Booleans and other unchangeable constants.
       // No, we should not learn Python 2, where the booleans
@@ -38,11 +38,11 @@ extension (env: Env) {
       case ScmList(Nil) => throw Exception("eval: got empty function call")
       // Inline anonymous function invocation.
       // eg. ((lambda (x) (+ x 2)) 3) ;; => 5
-      case ScmList((func as ScmList(_)) :: xs) => env.handleLambda(func, xs).get
+      case ScmList((func@ ScmList(_)) :: xs) => env.handleLambda(func, xs).get
       // Quote.
       case ScmList(Sym("quote") :: xs) =>
         xs match {
-          case (l as ScmList(_)) :: Nil => l.toConsCell
+          case (l@ ScmList(_)) :: Nil => l.toConsCell
           case quotee :: Nil => quotee
           case _             => throw Exception("quote: nothing to quote")
         }
@@ -66,7 +66,7 @@ extension (env: Env) {
           // Syntax sugar for function definition.
           // eg. (define (f x y) *defns*)
           // ->  (define f (lambda (x y) *defns*))
-          case ScmList((func as Sym(_)) :: args) :: defns =>
+          case ScmList((func@ Sym(_)) :: args) :: defns =>
             env.eval {
               ScmList(
                 Sym("define")
@@ -119,32 +119,34 @@ extension (env: Env) {
         ScmNil
       }
       // Call function by name.
-      case ScmList((func as Sym(_)) :: args) => handleLambda(func, args).get
+      case ScmList((func@ Sym(_)) :: args) => handleLambda(func, args).get
 
       case _ => throw Exception("eval: unexpected expression")
     }
   }
 }
 
-def apply(func: Exp, args: List[Exp]): Try[Exp] = Try {
-  func match {
-    // `func` can only be Primitive or Closure.
-    case Primitive(prim) => prim(args).get
-    case Closure(body, env) => {
-      val ScmList(varsList :: defns) = body
-      val localEnv = Env(outer = env)
+extension (func: Exp) {
+  def apply(args: List[Exp]): Try[Exp] = Try {
+    func match {
+      // `func` can only be Primitive or Closure.
+      case Primitive(prim) => prim(args).get
+      case Closure(body, env) => {
+        val ScmList(varsList :: defns) = body
+        val localEnv = Env(outer = env)
 
-      varsList match {
-        case ScmList(vars) =>
-          vars.zip(args).map { (ident, arg) =>
-            localEnv.insertVal(ident.asInstanceOf[Sym].value, arg)
-          }
-        case ScmNil => {}
-        case _      => throw Exception("apply: unexpected expression")
+        varsList match {
+          case ScmList(vars) =>
+            vars.zip(args).map { (ident, arg) =>
+              localEnv.insertVal(ident.asInstanceOf[Sym].value, arg)
+            }
+          case ScmNil => {}
+          case _      => throw Exception("apply: unexpected expression")
+        }
+
+        localEnv.evalList(defns).get
       }
-
-      localEnv.evalList(defns).get
+      case _ => throw Exception("apply: unexpected expression")
     }
-    case _ => throw Exception("apply: unexpected expression")
   }
 }
