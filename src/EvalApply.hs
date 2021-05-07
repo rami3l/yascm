@@ -2,14 +2,14 @@ module EvalApply
     ( eval
     , evalList
     ) where
-import           Data.IORef
-import           Data.Function
-import           Types
 import           Control.Monad
 import           Control.Monad.Trans.Class
 import           Control.Monad.Trans.Except
 import           Control.Monad.Trans.Maybe
+import           Data.Function
+import           Data.IORef
 import qualified System.Exit                   as Exit
+import           Types
 
 handleLambda :: Exp -> [Exp] -> IORef Env -> ExceptT ScmErr IO Exp
 handleLambda exp' xs envBox = do
@@ -123,8 +123,8 @@ apply (Primitive (ScmPrimitive prim      )) args = except $ prim args
 
 apply (Closure   (ScmClosure body' envBox)) args = do
     let (List (List vars : defs)) = body'
-    env'     <- lift $ readIORef envBox
-    localEnv <- lift $ newIORef env'
+    env'     <- readIORef envBox & lift
+    localEnv <- newIORef env' & lift
     zip vars args
         `forM_` (\(Symbol i, arg) -> insertValue i arg localEnv)
         &       lift

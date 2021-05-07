@@ -2,8 +2,8 @@ module ScmPrelude
     ( prelude
     ) where
 
-import           Types
 import qualified Data.Map                      as Map
+import           Types
 
 
 prelude :: Env

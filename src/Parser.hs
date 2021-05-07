@@ -2,9 +2,9 @@ module Parser
     ( run
     , runList
     ) where
-import           Text.ParserCombinators.Parsec
 import           Data.Either.Combinators
 import           Data.List
+import           Text.ParserCombinators.Parsec
 import qualified Types                         as T
 
 eatComment :: String -> String

@@ -12,10 +12,10 @@ module Types
     ) where
 import           Control.Monad.Trans.Class
 import           Control.Monad.Trans.Maybe
-import           GHC.Base
-import qualified Data.Map                      as Map
 import           Data.IORef
+import qualified Data.Map                      as Map
 import           Data.Maybe
+import           GHC.Base
 
 data Exp = Boolean Bool
          | Symbol String

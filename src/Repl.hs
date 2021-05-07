@@ -4,14 +4,14 @@ module Repl
     , runStrings
     ) where
 
+import           Control.Monad.Trans.Class
+import           Control.Monad.Trans.Except
 import           Data.Function
 import           Data.IORef
 import qualified EvalApply                     as E
 import qualified Parser                        as P
 import           System.Console.Haskeline
 import qualified Types                         as T
-import           Control.Monad.Trans.Class
-import           Control.Monad.Trans.Except
 
 repl :: IORef T.Env -> IO ()
 repl envBox = runInputT defaultSettings (loop envBox)
