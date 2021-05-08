@@ -111,12 +111,27 @@ extension (env: Env) {
             case _ => throw Exception("cond: ill-formed")
           }
         }
+
         evalTail(tail).get
       }
       case ScmList(Sym("begin") :: xs) => env.evalList(xs).get
       case ScmList(Sym("display") :: xs) => {
         xs.foreach { println(_) }
         ScmNil
+      }
+
+      // Exit.
+      case ScmList(Sym("exit") :: xs) => {
+        def exit(code: Int): Exp = {
+          System.exit(code)
+          ScmNil
+        }
+
+        xs match {
+          case Nil                 => exit(0)
+          case ScmInt(code) :: Nil => exit(code)
+          case _                   => throw Exception("exit: expected Int")
+        }
       }
       // Call function by name.
       case ScmList((func@ Sym(_)) :: args) => handleLambda(func, args).get
