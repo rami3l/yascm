@@ -15,7 +15,7 @@ object ScmParser extends JavaTokenParsers {
     ScmList(Sym("quote") :: quotee :: Nil)
   }
 
-  def str: Parser[Exp] = stringLiteral ^^ { Str(_) }
+  def str: Parser[Exp] = stringLiteral ^^ Str
 
   def decimal: Parser[Exp] = """[+-]?(\.\d+|\d+\.\d*)""".r ^^ { f =>
     ScmDouble(f.toDouble)
