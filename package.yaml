@@ -5,13 +5,23 @@ version: 0.1.0.0
 ghc-options: -Wall
 
 dependencies:
-  - base
+  - name: base
+    mixin:
+      - hiding (Prelude)
+  - name: relude
+    mixin:
+      - (Relude as Prelude)
   - containers
   - parsec
   - haskeline
   - optparse-applicative
   - transformers
   - either
+  - placeholders
+  - text
+  - text-format
+  - string-conversions
+  - raw-strings-qq
 
 executables:
   yascm-app:
