@@ -3,6 +3,8 @@
         "Haskeline",
         "desugared",
         "foldl",
+        "hspec",
+        "relude",
         "unlines",
         "unwords",
         "yascm"

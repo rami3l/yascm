@@ -33,7 +33,7 @@ data Exp
   = ScmBool Bool
   | ScmSym Text
   | ScmStr Text
-  | ScmInt Int
+  | ScmInt Integer
   | ScmDouble Double
   | ScmList [Exp]
   | ScmCons
@@ -41,8 +41,10 @@ data Exp
         cdr :: Exp
       }
   | ScmClosure
-      { -- body := (List (List (vars) : defs))
-        body :: Exp, -- Should be 'ScmList
+      { -- | Should be @ScmList@.
+        --
+        -- @body := (ScmList (ScmList (vars) : defs))@
+        body :: Exp,
         env :: IORef Env
       }
   | ScmPrimitive ([Exp] -> Either ScmErr Exp)
@@ -88,7 +90,7 @@ data Env = Env
 fromOuter :: IORef Env -> Env
 fromOuter fromEnvBox = Env Map.empty $ Just fromEnvBox
 
--- | Find the definition of a Symbol.
+-- | Find the definition of a symbol.
 lookup :: Text -> IORef Env -> MaybeT IO Exp
 lookup s envBox = do
   env' <- lift $ readIORef envBox

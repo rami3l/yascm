@@ -1,90 +1,112 @@
-module Parser
-    ( run
-    , runList
-    ) where
-import           Data.Either.Combinators
-import           Data.List
-import           Text.ParserCombinators.Parsec
-import qualified Types                         as T
+{-# LANGUAGE OverloadedStrings #-}
 
-eatComment :: String -> String
-eatComment = unlines . map eatCommentLine . lines
-  where
-    eatCommentLine =
-        unwords . takeWhile (\w -> not (";" `isPrefixOf` w)) . words
+module Parser
+  (
+  )
+where
+
+-- run,
+-- runList,
+
+import Data.Either.Combinators (mapLeft)
+import Data.Function ((&))
+import Data.Functor.Identity (Identity)
+import Data.String.Conversions (cs)
+import Data.Text.Lazy (Text)
+import Data.Text.Lazy.Read (rational, signed)
+import Text.Parsec
+  ( ParseError,
+    alphaNum,
+    char,
+    choice,
+    letter,
+    many,
+    many1,
+    oneOf,
+    parse,
+    sepEndBy,
+    sepEndBy1,
+    skipMany,
+    skipMany1,
+    space,
+    try,
+    (<|>),
+  )
+import Text.Parsec.Text.Lazy (Parser)
+import Text.Parsec.Token
+  ( GenLanguageDef (..),
+    GenTokenParser (..),
+    makeTokenParser,
+  )
+import qualified Types as T
 
 symChar :: Parser Char
 symChar = oneOf "!#$%&|*+-/:<=>?@^_~"
 
-symbol :: Parser T.Exp
-symbol = do
-    x  <- letter <|> symChar
-    xs <- many (letter <|> digit <|> symChar)
-    return $ T.Symbol (x : xs)
+scmDef :: GenLanguageDef Text () Identity
+scmDef =
+  LanguageDef
+    { commentStart = "#|",
+      commentEnd = "|#",
+      commentLine = ";",
+      nestedComments = True,
+      identStart = letter,
+      identLetter = alphaNum <|> symChar,
+      opStart = symChar,
+      opLetter = alphaNum <|> symChar,
+      reservedNames = [],
+      reservedOpNames = [],
+      caseSensitive = True
+    }
 
--- A naïve string implementation
--- TODO: implement parsing of escape sequences
+scmLexer :: GenTokenParser Text () Identity
+scmLexer = makeTokenParser scmDef
+
+sym :: Parser T.Exp
+sym = T.ScmSym . cs <$> (identifier scmLexer <|> operator scmLexer)
+
 str :: Parser T.Exp
-str = do
-    _ <- char '"'
-    s <- manyTill anyChar (char '"')
-    return $ T.String s
+str = T.ScmStr . cs <$> stringLiteral scmLexer
 
-posNumber :: Parser T.Exp
-posNumber = do
-    x  <- digit <|> char '.'
-    xs <- many (digit <|> oneOf ".e-")
-    let res = read (x : xs)
-    return $ T.Number res
+int :: Parser T.Exp
+int = T.ScmInt <$> integer scmLexer
 
-negNumber :: Parser T.Exp
-negNumber = do
-    _              <- char '-'
-    (T.Number res) <- posNumber
-    return $ T.Number (negate res)
-
-number :: Parser T.Exp
-number = negNumber <|> posNumber
+double :: Parser T.Exp
+double = T.ScmDouble <$> float scmLexer
 
 atom :: Parser T.Exp
-atom = try number <|> symbol
+atom = try (int <|> double) <|> sym
 
 regList :: Parser T.Exp
-regList = do
-    char '(' >> skipMany space
-    res <- sepEndBy expr (many1 space)
-    _   <- char ')'
-    return $ T.List res
+regList = parens scmLexer $ T.ScmList <$> many expr
 
 dottedList :: Parser T.Exp
-dottedList = do
-    char '(' >> skipMany space
-    x <- expr
-    skipMany1 space >> char '.' >> skipMany1 space
-    y <- expr
-    _ <- skipMany space >> char ')'
-    return $ T.List [x, y]
+dottedList =
+  parens
+    scmLexer
+    ( do
+        car <- expr
+        _ <- dot scmLexer
+        T.ScmCons car <$> expr
+    )
 
 list :: Parser T.Exp
 list = try dottedList <|> regList
 
 quoted :: Parser T.Exp
 quoted = do
-    _ <- char '\''
-    r <- expr
-    return $ T.List [T.Symbol "quote", r]
+  _ <- char '\''
+  r <- expr
+  return $ T.ScmList [T.ScmSym "quote", r]
 
 expr :: Parser T.Exp
 expr = choice [str, quoted, list, atom]
 
-exprs :: Parser [T.Exp]
-exprs = sepEndBy1 expr $ many1 space
-
 toScmErr :: ParseError -> T.ScmErr
-toScmErr = T.ScmErr . show
+toScmErr = T.ScmErr . cs . show
 
-run :: String -> Either T.ScmErr T.Exp
-run = mapLeft toScmErr . parse expr "yascm" . eatComment
+run :: Text -> Either T.ScmErr T.Exp
+run = mapLeft toScmErr . parse expr "yascm"
 
-runList :: String -> Either T.ScmErr [T.Exp]
-runList = mapLeft toScmErr . parse exprs "yascm" . eatComment
+runList :: Text -> Either T.ScmErr [T.Exp]
+runList = mapLeft toScmErr . parse (many1 expr) "yascm"
