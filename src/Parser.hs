@@ -1,19 +1,15 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Parser
-  (
+  ( run,
+    runList,
   )
 where
 
--- run,
--- runList,
-
 import Data.Either.Combinators (mapLeft)
-import Data.Function ((&))
 import Data.Functor.Identity (Identity)
 import Data.String.Conversions (cs)
 import Data.Text.Lazy (Text)
-import Data.Text.Lazy.Read (rational, signed)
 import Text.Parsec
   ( ParseError,
     alphaNum,
@@ -24,12 +20,6 @@ import Text.Parsec
     many1,
     oneOf,
     parse,
-    sepEndBy,
-    sepEndBy1,
-    skipMany,
-    skipMany1,
-    space,
-    try,
     (<|>),
   )
 import Text.Parsec.Text.Lazy (Parser)
@@ -39,6 +29,7 @@ import Text.Parsec.Token
     makeTokenParser,
   )
 import qualified Types as T
+import Prelude hiding (Text)
 
 symChar :: Parser Char
 symChar = oneOf "!#$%&|*+-/:<=>?@^_~"
@@ -75,28 +66,25 @@ double :: Parser T.Exp
 double = T.ScmDouble <$> float scmLexer
 
 atom :: Parser T.Exp
-atom = try (int <|> double) <|> sym
+atom = int <|> double <|> sym
+
+inParens :: Parser T.Exp -> Parser T.Exp
+inParens = parens scmLexer
 
 regList :: Parser T.Exp
-regList = parens scmLexer $ T.ScmList <$> many expr
+regList = inParens $ T.ScmList <$> many expr
 
 dottedList :: Parser T.Exp
-dottedList =
-  parens
-    scmLexer
-    ( do
-        car <- expr
-        _ <- dot scmLexer
-        T.ScmCons car <$> expr
-    )
+dottedList = inParens $ do
+  car <- expr
+  T.ScmCons car <$> (dot scmLexer >> expr)
 
 list :: Parser T.Exp
-list = try dottedList <|> regList
+list = dottedList <|> regList
 
 quoted :: Parser T.Exp
 quoted = do
-  _ <- char '\''
-  r <- expr
+  r <- char '\'' >> expr
   return $ T.ScmList [T.ScmSym "quote", r]
 
 expr :: Parser T.Exp

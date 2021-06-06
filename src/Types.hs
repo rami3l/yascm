@@ -14,6 +14,8 @@ module Types
     tryToList,
     isList,
     scmNil,
+    toConsCell,
+    isDefined,
   )
 where
 
@@ -28,6 +30,7 @@ import Data.Text.Format (format)
 import Data.Text.Lazy (Text)
 import GHC.Base (returnIO)
 import Text.RawString.QQ (r)
+import Prelude hiding (Text)
 
 data Exp
   = ScmBool Bool
@@ -35,13 +38,18 @@ data Exp
   | ScmStr Text
   | ScmInt Integer
   | ScmDouble Double
-  | ScmList [Exp]
-  | ScmCons
+  | -- | An unevaluated Scheme list.
+    -- Only used as an AST component (eg. when expressing function calls),
+    -- does not appear in evaluation results.
+    ScmList [Exp]
+  | -- | A `Cons` pair made up by two expressions.
+    ScmCons
       { car :: Exp,
         cdr :: Exp
       }
-  | ScmClosure
-      { -- | Should be @ScmList@.
+  | -- | An anonymous function.
+    ScmClosure
+      { -- | Should be `ScmList`.
         --
         -- @body := (ScmList (ScmList (vars) : defs))@
         body :: Exp,
@@ -49,8 +57,14 @@ data Exp
       }
   | ScmPrimitive ([Exp] -> Either ScmErr Exp)
 
+-- | The special class signifying the end of a list.
+-- Also used as an empty expression.
 scmNil :: Exp
 scmNil = ScmList []
+
+toConsCell :: [Exp] -> Exp
+toConsCell [] = scmNil
+toConsCell (x : xs) = ScmCons x . toConsCell $ xs
 
 tryToList :: Exp -> Maybe [Exp]
 tryToList (ScmList l) = Just l
@@ -100,6 +114,9 @@ lookup s envBox = do
       outerEnv <- MaybeT . returnIO . outer $ env'
       Types.lookup s outerEnv
 
+isDefined :: Text -> IORef Env -> IO Bool
+isDefined s envBox = isJust <$> runMaybeT (Types.lookup s envBox)
+
 insertValue :: Text -> Exp -> IORef Env -> IO ()
 insertValue sym def envBox = do
   (Env d mo) <- readIORef envBox
@@ -109,11 +126,11 @@ setValue :: Text -> Exp -> IORef Env -> IO ()
 setValue sym def envBox = do
   (Env d mo) <- readIORef envBox
   let isLocal = isJust $ Map.lookup sym d
-  isDefined <- do
+  isDefined' <- do
     res <- runMaybeT $ Types.lookup sym envBox
     return $ isJust res
 
-  if not isLocal && isDefined
+  if not isLocal && isDefined'
     then do
       let (Just o) = mo
       setValue sym def o

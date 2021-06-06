@@ -1,112 +1,128 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module ScmPrelude
-    ( prelude
-    ) where
+  ( prelude,
+  )
+where
 
-import qualified Data.Map                      as Map
-import           Types
-
+import Control.Arrow (second)
+import qualified Data.Map as Map
+import Data.Text.Format (format)
+import Data.Text.Lazy (Text)
+import Types as T
+  ( Env (..),
+    Exp (ScmBool, ScmCons, ScmDouble, ScmInt, ScmList, ScmPrimitive),
+    ScmErr (..),
+    toConsCell,
+  )
+import Prelude hiding (Text)
 
 prelude :: Env
 prelude =
-    let o = Nothing
-        d = Map.fromList
-            [ ("+"       , makePrim add)
-            , ("-"       , makePrim sub)
-            , ("*"       , makePrim mul)
-            , ("/"       , makePrim ScmPrelude.div)
-            , ("="       , makePrim eq)
-            , ("<"       , makePrim lt)
-            , ("<="      , makePrim le)
-            , (">"       , makePrim gt)
-            , (">="      , makePrim ge)
-            , ("car"     , makePrim car)
-            , ("cdr"     , makePrim cdr)
-            , ("cons"    , makePrim cons)
-            , ("list"    , makePrim list)
-            , ("null?"   , makePrim isNull)
-            , ("boolean?", makePrim isBoolean)
-            -- display, newline and exit are all IO actions, 
-            -- so they don't belong here.
-            -- , ("display", makePrim display)
-            -- , ("newline", makePrim newline)
-            -- , ("exit", makePrim exit)
-            , ("#t"      , Boolean True)
-            , ("#f"      , Boolean False)
-            , ("null"    , List [])
-            ]
-    in  Env d o
+  Env
+    { outer = Nothing,
+      dict =
+        Map.fromList $
+          second ScmPrimitive
+            <$> [ ("+", add),
+                  ("-", sub),
+                  ("*", mul),
+                  ("/", ScmPrelude.div),
+                  ("=", eq),
+                  ("<", lt),
+                  ("<=", le),
+                  (">", gt),
+                  (">=", ge),
+                  ("car", car),
+                  ("cdr", cdr),
+                  ("cons", cons),
+                  ("list", list),
+                  ("nil?", isNil),
+                  ("boolean?", isBoolean)
+                ]
+    }
+
+car :: [Exp] -> Either ScmErr Exp
+car [ScmCons x _] = Right x
+car _ = Left $ ScmErr "car: expected a Cons"
+
+cdr :: [Exp] -> Either ScmErr Exp
+cdr [ScmCons _ y] = Right y
+cdr _ = Left $ ScmErr "cdr: expected a Cons"
+
+cons :: [Exp] -> Either ScmErr Exp
+cons [x, y] = Right $ ScmCons x y
+cons _ = Left $ ScmErr "cons: expected 2 expressions"
+
+list :: [Exp] -> Either ScmErr Exp
+list = Right . toConsCell
+
+isNil :: [Exp] -> Either ScmErr Exp
+isNil [ScmList []] = Right $ ScmBool True
+isNil _ = Right $ ScmBool False
+
+isBoolean :: [Exp] -> Either ScmErr Exp
+isBoolean [ScmBool _] = Right $ ScmBool True
+isBoolean _ = Right $ ScmBool False
 
 sigma :: (Exp -> Exp -> Either ScmErr Exp) -> [Exp] -> Either ScmErr Exp
 sigma helper xs = case xs of
-    [x, y] -> helper x y
-    y : ys -> helper y =<< sigma helper ys
-    _      -> Left $ ScmErr "add/mul : expected multiple terms"
+  [x, y] -> helper x y
+  y : ys -> helper y =<< sigma helper ys
+  _ -> Left $ ScmErr "add/mul : expected multiple terms"
+
+add2 :: (Double -> Double -> Double) -> Text -> Exp -> Exp -> Either ScmErr Exp
+-- ! Hack: Redundant conversion.
+add2 op _ (ScmInt x) (ScmInt y) = Right . ScmInt . truncate $ fromIntegral x `op` fromIntegral y
+add2 op _ (ScmDouble x) (ScmInt y) = Right . ScmDouble $ x `op` fromIntegral y
+add2 op _ (ScmInt x) (ScmDouble y) = Right . ScmDouble $ fromIntegral x `op` y
+add2 op _ (ScmDouble x) (ScmDouble y) = Right . ScmDouble $ x `op` y
+add2 _ opName _ _ = Left . ScmErr $ format "{}: expected Numbers" [opName]
 
 add :: [Exp] -> Either ScmErr Exp
-add = sigma helper  where
-    helper (Number x) (Number y) = Right $ Number (x + y)
-    helper _          _          = Left $ ScmErr "add: expected Number"
+add = sigma $ add2 (+) "add"
 
 sub :: [Exp] -> Either ScmErr Exp
-sub [Number x, Number y] = Right $ Number (x - y)
-sub _                    = Left $ ScmErr "sub: expected Number"
+sub [x, y] = add2 (-) "sub" x y
+sub _ = Left $ ScmErr "sub: expected Numbers"
 
 mul :: [Exp] -> Either ScmErr Exp
-mul = sigma helper  where
-    helper (Number x) (Number y) = Right $ Number (x * y)
-    helper _          _          = Left $ ScmErr "mul: expected Number"
+mul = sigma $ add2 (*) "mul"
+
+divider :: Double -> Double -> Either ScmErr Exp
+divider x y = if y /= 0 then Right . ScmDouble $ x / y else Left $ ScmErr "div: divided by 0"
 
 div :: [Exp] -> Either ScmErr Exp
-div [Number x, Number y] =
-    if y /= 0 then Right $ Number (x / y) else Left $ ScmErr "div: divided by 0"
+div [ScmInt x, ScmInt y] = fromIntegral x `divider` fromIntegral y
+div [ScmDouble x, ScmInt y] = x `divider` fromIntegral y
+div [ScmInt x, ScmDouble y] = fromIntegral x `divider` y
+div [ScmDouble x, ScmDouble y] = divider x y
 div _ = Left $ ScmErr "div: expected Number"
 
+-- | Convert a bool to a `Num`.
+fromBool :: Num a => Bool -> a
+fromBool True = 1
+fromBool False = 0
+
+comp2 :: (Double -> Double -> Bool) -> Text -> [Exp] -> Either ScmErr Exp
+comp2 op _ [ScmInt x, ScmInt y] = Right . ScmBool $ fromIntegral x `op` fromIntegral y
+comp2 op _ [ScmDouble x, ScmInt y] = Right . ScmBool $ x `op` fromIntegral y
+comp2 op _ [ScmInt x, ScmDouble y] = Right . ScmBool $ fromIntegral x `op` y
+comp2 op _ [ScmDouble x, ScmDouble y] = Right . ScmBool $ x `op` y
+comp2 op _ [ScmBool x, ScmBool y] = Right . ScmBool $ fromBool x `op` fromBool y
+comp2 _ opName _ = Left . ScmErr $ format "{}: expected Numbers or Booleans" [opName]
+
 eq :: [Exp] -> Either ScmErr Exp
-eq [Number  x, Number y ] = Right $ Boolean (x == y)
-eq [Boolean x, Boolean y] = Right $ Boolean (x == y)
-eq _                      = Left $ ScmErr "eq: expected Number or Boolean"
+eq = comp2 (==) "eq"
 
 lt :: [Exp] -> Either ScmErr Exp
-lt [Number  x, Number y ] = Right $ Boolean (x < y)
-lt [Boolean x, Boolean y] = Right $ Boolean (x < y)
-lt _                      = Left $ ScmErr "lt: expected Number or Boolean"
+lt = comp2 (<) "lt"
 
 le :: [Exp] -> Either ScmErr Exp
-le [Number  x, Number y ] = Right $ Boolean (x <= y)
-le [Boolean x, Boolean y] = Right $ Boolean (x <= y)
-le _                      = Left $ ScmErr "le: expected Number or Boolean"
+le = comp2 (<=) "le"
 
 gt :: [Exp] -> Either ScmErr Exp
-gt [Number  x, Number y ] = Right $ Boolean (x > y)
-gt [Boolean x, Boolean y] = Right $ Boolean (x > y)
-gt _                      = Left $ ScmErr "gt: expected Number or Boolean"
+gt = comp2 (>) "gt"
 
 ge :: [Exp] -> Either ScmErr Exp
-ge [Number  x, Number y ] = Right $ Boolean (x >= y)
-ge [Boolean x, Boolean y] = Right $ Boolean (x >= y)
-ge _                      = Left $ ScmErr "ge: expected Number or Boolean"
-
-car :: [Exp] -> Either ScmErr Exp
-car [List (x : _)] = Right x
-car _              = Left $ ScmErr "car: expected a List"
-
-cdr :: [Exp] -> Either ScmErr Exp
-cdr [List (_ : xs)] = Right $ List xs
-cdr _               = Left $ ScmErr "cdr: expected a List"
-
-cons :: [Exp] -> Either ScmErr Exp
-cons [x, List y] = Right $ List (x : y)
-cons _           = Left $ ScmErr "cons: expected an Exp and a List"
-
-list :: [Exp] -> Either ScmErr Exp
-list xs = Right $ List xs
-
-isNull :: [Exp] -> Either ScmErr Exp
-isNull [List []] = Right $ Boolean True
-isNull [List _ ] = Right $ Boolean False
-isNull _         = Left $ ScmErr "null?: expected a List"
-
-isBoolean :: [Exp] -> Either ScmErr Exp
-isBoolean [Boolean _] = Right $ Boolean True
-isBoolean _           = Right $ Boolean False
-
+ge = comp2 (>=) "ge"
