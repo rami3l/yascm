@@ -1,7 +1,5 @@
-{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternSynonyms #-}
 {-# LANGUAGE QuasiQuotes #-}
-{-# LANGUAGE TemplateHaskell #-}
 
 module Types
   ( Exp (..),
@@ -19,18 +17,14 @@ module Types
   )
 where
 
-import Control.Monad.Trans.Class (MonadTrans (lift))
-import Control.Monad.Trans.Maybe (MaybeT (..))
-import Data.Function ((&))
-import Data.IORef (IORef, readIORef, writeIORef)
 import qualified Data.Map.Lazy as Map
-import Data.Maybe (isJust)
 import Data.String.Conversions (cs)
 import Data.Text.Format (format)
 import Data.Text.Lazy (Text)
 import GHC.Base (returnIO)
+import Relude hiding (Text, show)
 import Text.RawString.QQ (r)
-import Prelude hiding (Text)
+import Prelude (show, unwords)
 
 data Exp
   = ScmBool Bool

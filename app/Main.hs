@@ -2,8 +2,8 @@ module Main where
 
 import qualified ArgParse as Arg
 import Control.Monad.Trans.Except
-import Data.IORef
 import Options.Applicative
+import Relude
 import qualified Repl as R
 import qualified ScmPrelude as Scm
 

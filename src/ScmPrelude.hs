@@ -1,21 +1,18 @@
-{-# LANGUAGE OverloadedStrings #-}
-
 module ScmPrelude
   ( prelude,
   )
 where
 
-import Control.Arrow (second)
 import qualified Data.Map as Map
 import Data.Text.Format (format)
 import Data.Text.Lazy (Text)
+import Relude hiding (Text)
 import Types as T
   ( Env (..),
     Exp (ScmBool, ScmCons, ScmDouble, ScmInt, ScmList, ScmPrimitive),
     ScmErr (..),
     toConsCell,
   )
-import Prelude hiding (Text)
 
 prelude :: Env
 prelude =

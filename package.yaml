@@ -2,15 +2,24 @@ name: yascm
 
 version: 0.1.0.0
 
-ghc-options: -Wall
+ghc-options:
+  - -Wall
+
+default-extensions:
+  - OverloadedStrings
+  - TemplateHaskell
+  # https://github.com/commercialhaskell/stack/issues/5077
+  - NoImplicitPrelude
 
 dependencies:
-  - name: base
-    mixin:
-      - hiding (Prelude)
-  - name: relude
-    mixin:
-      - (Relude as Prelude)
+  # - name: base
+  #   mixin:
+  #     - hiding (Prelude)
+  # - name: relude
+  #   mixin:
+  #     - (Relude as Prelude)
+  - relude
+  - base
   - containers
   - parsec
   - haskeline

@@ -1,5 +1,3 @@
-{-# LANGUAGE OverloadedStrings #-}
-
 module Parser
   ( run,
     runList,
@@ -7,9 +5,9 @@ module Parser
 where
 
 import Data.Either.Combinators (mapLeft)
-import Data.Functor.Identity (Identity)
 import Data.String.Conversions (cs)
 import Data.Text.Lazy (Text)
+import Relude hiding (Text, many, show)
 import Text.Parsec
   ( ParseError,
     alphaNum,
@@ -20,7 +18,6 @@ import Text.Parsec
     many1,
     oneOf,
     parse,
-    (<|>),
   )
 import Text.Parsec.Text.Lazy (Parser)
 import Text.Parsec.Token
@@ -29,7 +26,7 @@ import Text.Parsec.Token
     makeTokenParser,
   )
 import qualified Types as T
-import Prelude hiding (Text)
+import Prelude (show)
 
 symChar :: Parser Char
 symChar = oneOf "!#$%&|*+-/:<=>?@^_~"

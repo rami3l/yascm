@@ -1,5 +1,5 @@
-{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE ViewPatterns #-}
 
 module EvalApply
   ( eval,
@@ -7,12 +7,9 @@ module EvalApply
   )
 where
 
-import Control.Monad.Trans.Class (MonadTrans (lift))
-import Control.Monad.Trans.Except (ExceptT, except, throwE)
-import Control.Monad.Trans.Maybe (maybeToExceptT)
-import Data.Function ((&))
-import Data.IORef (IORef, newIORef, readIORef)
+import Control.Monad.Trans.Except (except, throwE)
 import Data.Text.Format (format)
+import Relude hiding (Text)
 import qualified System.Exit as Exit
 import Text.RawString.QQ (r)
 import Types as T
@@ -27,7 +24,6 @@ import Types as T
     setValue,
     toConsCell,
   )
-import Prelude hiding (Text)
 
 handleLambda :: Exp -> [Exp] -> IORef Env -> ExceptT ScmErr IO Exp
 handleLambda exp' xs envBox = do
@@ -36,9 +32,11 @@ handleLambda exp' xs envBox = do
   apply func args
 
 evalList :: [Exp] -> IORef Env -> ExceptT ScmErr IO Exp
-evalList xs envBox = do
-  init xs & mapM_ (`eval` envBox)
-  eval (last xs) envBox
+evalList xs envBox = case nonEmpty xs of
+  Nothing -> return scmNil
+  Just xs' -> do
+    init xs' & mapM_ (`eval` envBox)
+    eval (last xs') envBox
 
 eval :: Exp -> IORef Env -> ExceptT ScmErr IO Exp
 -- Self-evaluating types.
@@ -132,7 +130,7 @@ eval (ScmList l) envBox = case l of
   (ScmSym "display") : t ->
     let printElem x = do
           val <- eval x envBox
-          lift $ Prelude.print val
+          lift $ print val
           return $ ScmList []
      in case t of
           [] -> throwE $ ScmErr "display: nothing to display"
