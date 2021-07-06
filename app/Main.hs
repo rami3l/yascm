@@ -1,9 +1,15 @@
 module Main where
 
 import qualified ArgParse as Arg
-import Control.Monad.Trans.Except
+import Data.String.Conversions (cs)
 import Options.Applicative
-import Relude
+  ( execParser,
+    fullDesc,
+    header,
+    helper,
+    info,
+  )
+import Relude hiding (Text)
 import qualified Repl as R
 import qualified ScmPrelude as Scm
 
@@ -38,13 +44,12 @@ dispatch a = do
   globalEnv <- newIORef Scm.prelude
 
   let readSourceFile path = do
-        contents <- readFile path
-        _ <- runExceptT $ R.runScheme contents globalEnv
-        return ()
+        contents <- cs <$> readFile path
+        void . runExceptT $ R.runScheme contents globalEnv
 
   let readSourceFileVerbose path = do
         putStr $ ".. Reading `" ++ path ++ "`: "
-        contents <- readFile path
+        contents <- cs <$> readFile path
         res <- runExceptT $ R.runScheme contents globalEnv
         case res of
           Right _ -> putStrLn "Done."

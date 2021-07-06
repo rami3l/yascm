@@ -1,21 +1,24 @@
 module Main where
 
-import Data.IORef
+import Control.Monad.Trans.Writer.CPS (runWriterT)
+import Data.Text.Lazy (Text)
 import qualified Parser as P
+import Relude hiding (Text)
 import qualified Repl
 import qualified ScmPrelude as Scm
 import Test.Hspec
 
-checkParseList :: [(String, String)] -> Expectation
-checkParseList xs = map (show . P.runList . fst) xs `shouldBe` (map snd xs)
+checkParseList :: [(Text, Text)] -> Expectation
+checkParseList xs = map (show . P.runList . fst) xs `shouldBe` map snd xs
 
-runPrelude :: [String] -> IO [String]
-runPrelude xs = do
-  preludeBox <- newIORef Scm.prelude
-  Repl.runStrings xs preludeBox
+runPrelude :: [Text] -> IO [Text]
+runPrelude xs =
+  snd <$> do
+    preludeBox <- newIORef Scm.prelude
+    runWriterT $ Repl.runStrings xs preludeBox
 
-checkIO :: [(String, String)] -> Expectation
-checkIO xs = runPrelude (map fst xs) `shouldReturn` (map snd xs)
+checkIO :: [(Text, Text)] -> Expectation
+checkIO xs = runPrelude (map fst xs) `shouldReturn` map snd xs
 
 main :: IO ()
 main = hspec $ do

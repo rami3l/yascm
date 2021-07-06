@@ -8,8 +8,8 @@ ghc-options:
 default-extensions:
   - OverloadedStrings
   - TemplateHaskell
-  # https://github.com/commercialhaskell/stack/issues/5077
-  - NoImplicitPrelude
+  - ScopedTypeVariables
+  - NoImplicitPrelude # https://github.com/commercialhaskell/stack/issues/5077
 
 dependencies:
   # - name: base

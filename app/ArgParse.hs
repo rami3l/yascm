@@ -5,7 +5,7 @@ module ArgParse
 where
 
 import Options.Applicative
-import Relude
+import Relude hiding (Text)
 
 data Args = Args
   { fin :: Maybe String,
