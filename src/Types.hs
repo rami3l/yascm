@@ -20,7 +20,6 @@ import qualified Data.Map.Lazy as Map
 import Data.String.Conversions (cs)
 import Data.Text.Format (format)
 import Data.Text.Lazy (Text)
-import GHC.Base (returnIO)
 import Relude hiding (Text, show)
 import Text.RawString.QQ (r)
 import Prelude (show, unwords)
@@ -75,8 +74,9 @@ instance Show Exp where
   show (ScmInt i) = show i
   show (ScmDouble d) = show d
   show (ScmList l) = format "({})" [l & fmap show & Prelude.unwords] & cs
-  -- ! TODO: Implement auto conversion from ScmCons to ScmList
-  show (ScmCons car' cdr') = format "({} . {})" [show car', show cdr'] & cs
+  show cons@(ScmCons car' cdr') = case tryToList cons of
+    Just l -> show (ScmList l)
+    Nothing -> format "({} . {})" [show car', show cdr'] & cs
   show (ScmClosure body' _) =
     let (ScmList (ScmList vars : _)) = body'
      in format "<Closure: {}>" [show vars] & cs
@@ -104,7 +104,7 @@ lookup s envBox = do
   case Map.lookup s (dict env') of
     Just def -> return def
     Nothing -> do
-      outerEnv <- MaybeT . returnIO . outer $ env'
+      outerEnv <- MaybeT . return . outer $ env'
       Types.lookup s outerEnv
 
 isDefined :: Text -> IORef Env -> IO Bool

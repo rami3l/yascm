@@ -26,15 +26,16 @@ import Prelude (show)
 
 loop :: IORef T.Env -> InputT IO ()
 loop envBox' = do
+  let printLn = outputStrLn . show
   line :: Maybe String <- getInputLine ">> "
   whenJust (cs <$> line :: Maybe Text) $ \line' -> case P.run line' of
-    Left e -> outputStrLn . show $ e
+    Left e -> printLn e
     Right expr -> do
       mval <- lift . runExceptT $ E.eval expr envBox'
       case mval of
         Right (T.ScmList []) -> return ()
         Right val -> outputStrLn $ "=> " ++ show val
-        Left e -> outputStrLn $ show e
+        Left e -> printLn e
   loop envBox'
 
 repl :: IORef T.Env -> IO ()
@@ -55,18 +56,6 @@ runString x envBox =
 -- Get a list of Scheme Expression String's, and return the corresponding output String's
 runStrings :: [Text] -> IORef T.Env -> WriterT [Text] IO ()
 runStrings xs envBox = forM_ xs (`runString` envBox)
-
--- -- Get a list of Scheme Expression String's, and return the corresponding output String's
--- runStrings :: [Text] -> IORef T.Env -> IO [Text]
--- runStrings xs envBox = foldl' seedGen (return []) xs
---   where
---     seedGen mSeed x = do
---       seed <- mSeed
---       case P.run x of
---         Left err -> return $ seed ++ [cs $ show err]
---         Right expr -> do
---           val <- runExceptT $ E.eval expr envBox
---           return $ seed ++ [cs $ show val]
 
 -- Get a String of Scheme Expression's, then read and eval all of them
 runScheme :: Text -> IORef T.Env -> ExceptT T.ScmErr IO T.Exp
