@@ -8,7 +8,7 @@ module EvalApply
 where
 
 import Control.Monad.Trans.Except (except, throwE)
-import Data.Text.Format (format)
+import Data.Text.Format (Shown (Shown), format)
 import Relude hiding (Text)
 import qualified System.Exit as Exit
 import Text.RawString.QQ (r)
@@ -28,15 +28,13 @@ import Types as T
 handleLambda :: Exp -> [Exp] -> IORef Env -> ExceptT ScmErr IO Exp
 handleLambda exp' xs envBox = do
   func <- eval exp' envBox
-  args <- xs & mapM (`eval` envBox)
+  args <- xs `forM` (`eval` envBox)
   apply func args
 
 evalList :: [Exp] -> IORef Env -> ExceptT ScmErr IO Exp
 evalList xs envBox = case nonEmpty xs of
   Nothing -> return scmNil
-  Just xs' -> do
-    init xs' & mapM_ (`eval` envBox)
-    eval (last xs') envBox
+  Just xs' -> last <$> xs' `forM` (`eval` envBox)
 
 eval :: Exp -> IORef Env -> ExceptT ScmErr IO Exp
 -- Self-evaluating types.
@@ -140,7 +138,7 @@ eval (ScmList l) envBox = case l of
     _ -> throwE $ ScmErr "newline: expected no arguments"
   -- Function call by name.
   func@(ScmSym _) : t -> handleLambda func t envBox
-  _ -> throwE $ ScmErr "eval: unexpected compound Exp"
+  _rest -> throwE . ScmErr $ format "eval: unexpected compound Exp {}" [Shown _rest]
 eval _ _ = throwE $ ScmErr "eval: unexpected Exp"
 
 apply :: Exp -> [Exp] -> ExceptT ScmErr IO Exp

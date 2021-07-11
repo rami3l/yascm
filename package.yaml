@@ -8,6 +8,7 @@ ghc-options:
 default-extensions:
   - OverloadedStrings
   - TemplateHaskell
+  - QuasiQuotes
   - ScopedTypeVariables
   - NoImplicitPrelude # https://github.com/commercialhaskell/stack/issues/5077
 

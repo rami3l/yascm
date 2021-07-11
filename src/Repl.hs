@@ -42,13 +42,14 @@ repl envBox = runInputT defaultSettings (loop envBox)
 
 runString :: Text -> IORef T.Env -> WriterT [Text] IO ()
 runString x envBox =
-  let evaled = case P.run x of
-        Left err -> return . cs . show $ err
-        Right expr -> do
-          val <- runExceptT $ E.eval expr envBox
-          return . cs . show $ val
+  let showEither (Left err) = cs . show $ err
+      showEither (Right val) = cs . show $ val
+      eval (Left err) = return . cs . show $ err
+      eval (Right expr) = do
+        val <- runExceptT $ E.eval expr envBox
+        return . showEither $ val
    in do
-        ln <- lift evaled
+        ln <- lift . eval . P.run $ x
         tell [ln]
 
 -- Get a list of Scheme Expression String's, and return the corresponding output String's

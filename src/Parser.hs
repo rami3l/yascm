@@ -18,6 +18,8 @@ import Text.Parsec
     many1,
     oneOf,
     parse,
+    space,
+    try,
   )
 import Text.Parsec.Text.Lazy (Parser)
 import Text.Parsec.Token
@@ -62,8 +64,18 @@ int = T.ScmInt <$> integer scmLexer
 double :: Parser T.Exp
 double = T.ScmDouble <$> float scmLexer
 
+plus :: Parser T.Exp
+plus = do
+  _ <- char '+' >> many1 space
+  return $ T.ScmSym "+"
+
+minus :: Parser T.Exp
+minus = do
+  _ <- char '-' >> many1 space
+  return $ T.ScmSym "-"
+
 atom :: Parser T.Exp
-atom = int <|> double <|> sym
+atom = choice $ try <$> [plus, minus, double, int, sym]
 
 inParens :: Parser T.Exp -> Parser T.Exp
 inParens = parens scmLexer
@@ -77,7 +89,7 @@ dottedList = inParens $ do
   T.ScmCons car <$> (dot scmLexer >> expr)
 
 list :: Parser T.Exp
-list = dottedList <|> regList
+list = try dottedList <|> regList
 
 quoted :: Parser T.Exp
 quoted = do
@@ -94,4 +106,4 @@ run :: Text -> Either T.ScmErr T.Exp
 run = mapLeft toScmErr . parse expr "yascm"
 
 runList :: Text -> Either T.ScmErr [T.Exp]
-runList = mapLeft toScmErr . parse (many1 expr) "yascm"
+runList = mapLeft toScmErr . parse (whiteSpace scmLexer >> many1 expr) "yascm"
