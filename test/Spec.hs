@@ -44,7 +44,7 @@ parser = describe "scheme-parser" $ do
         ("-1.23", "Right [-1.23]"),
         ("1+ 2", "Right [1+,2]"),
         ("1+ -2", "Right [1+,-2]"),
-        ("1- +2", "Right [1-,+2]"),
+        ("1- +2", "Right [1-,2]"),
         ("1- -2", "Right [1-,-2]"),
         ("(+ 1 x)", "Right [(+ 1 x)]"),
         ( "(define inc (lambda (x) (+ x 1))) (inc 2)",

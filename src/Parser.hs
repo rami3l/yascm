@@ -13,12 +13,14 @@ import Text.Parsec
     alphaNum,
     char,
     choice,
+    digit,
     letter,
     many,
     many1,
+    notFollowedBy,
     oneOf,
+    optionMaybe,
     parse,
-    space,
     try,
   )
 import Text.Parsec.Text.Lazy (Parser)
@@ -42,7 +44,7 @@ scmDef =
       nestedComments = True,
       identStart = letter,
       identLetter = alphaNum <|> symChar,
-      opStart = symChar,
+      opStart = digit <|> symChar,
       opLetter = alphaNum <|> symChar,
       reservedNames = [],
       reservedOpNames = [],
@@ -52,30 +54,44 @@ scmDef =
 scmLexer :: GenTokenParser Text () Identity
 scmLexer = makeTokenParser scmDef
 
-sym :: Parser T.Exp
-sym = T.ScmSym . cs <$> (identifier scmLexer <|> operator scmLexer)
+whiteSpace' :: Parser ()
+whiteSpace' = whiteSpace scmLexer
+
+ident :: Parser T.Exp
+ident = T.ScmSym . cs <$> identifier scmLexer
+
+op :: Parser T.Exp
+op = T.ScmSym . cs <$> operator scmLexer
 
 str :: Parser T.Exp
 str = T.ScmStr . cs <$> stringLiteral scmLexer
 
-int :: Parser T.Exp
-int = T.ScmInt <$> integer scmLexer
+positiveIntOrDouble :: Parser T.Exp
+positiveIntOrDouble = do
+  num <- naturalOrFloat scmLexer
+  notFollowedBy symChar
+  return $ either T.ScmInt T.ScmDouble num
 
-double :: Parser T.Exp
-double = T.ScmDouble <$> float scmLexer
-
-plus :: Parser T.Exp
-plus = do
-  _ <- char '+' >> many1 space
-  return $ T.ScmSym "+"
-
-minus :: Parser T.Exp
-minus = do
-  _ <- char '-' >> many1 space
-  return $ T.ScmSym "-"
+intOrDouble :: Parser T.Exp
+intOrDouble =
+  let negate' sx = case sx of
+        T.ScmInt x -> T.ScmInt $ negate x
+        T.ScmDouble x -> T.ScmDouble $ negate x
+        -- Safety: this case will not be encountered,
+        -- due to the definition of `positiveIntOrDouble`.
+        _ -> T.scmNil
+   in do
+        sign <- optionMaybe $ oneOf "+-"
+        case sign of
+          Nothing -> positiveIntOrDouble
+          Just '+' -> positiveIntOrDouble
+          Just '-' -> negate' <$> positiveIntOrDouble
+          -- Safety: this case will not be encountered,
+          -- due to the definition of `oneOf`.
+          _ -> return T.scmNil
 
 atom :: Parser T.Exp
-atom = choice $ try <$> [plus, minus, double, int, sym]
+atom = choice [try intOrDouble, try op, ident]
 
 inParens :: Parser T.Exp -> Parser T.Exp
 inParens = parens scmLexer
@@ -106,4 +122,4 @@ run :: Text -> Either T.ScmErr T.Exp
 run = mapLeft toScmErr . parse expr "yascm"
 
 runList :: Text -> Either T.ScmErr [T.Exp]
-runList = mapLeft toScmErr . parse (whiteSpace scmLexer >> many1 expr) "yascm"
+runList = mapLeft toScmErr . parse (whiteSpace' >> many1 expr) "yascm"
