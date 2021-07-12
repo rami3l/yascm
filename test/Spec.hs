@@ -34,7 +34,9 @@ parser :: SpecWith ()
 parser = describe "scheme-parser" $ do
   it "does simple parsing" $
     checkParseList
-      [ ("+ 1", "Right [+,1]"),
+      [ ("1.23", "Right [1.23]"),
+        ("-1.23", "Right [-1.23]"),
+        ("+ 1", "Right [+,1]"),
         ("+1", "Right [1]"),
         ("- 1", "Right [-,1]"),
         ("- 1.23", "Right [-,1.23]"),

@@ -50,7 +50,7 @@ eval (ScmSym s) envBox = case s of
   "nil" -> return scmNil
   -- Variable evaluation by name.
   _ ->
-    s & (`T.lookup` envBox)
+    T.lookup s envBox
       & maybeToExceptT
         (ScmErr $ format [r|eval: Symbol "{}" undefined.|] [s])
 -- Function calls and keywords.
@@ -67,7 +67,7 @@ eval (ScmList l) envBox = case l of
   (ScmSym "lambda") : xs -> do
     -- ! Here we want to clone a pointer, not to clone an Env.
     -- body := (ScmList(ScmList(vars) : defs))
-    ScmClosure (ScmList xs) <$> lift (newIORef (fromOuter envBox))
+    ScmClosure (ScmList xs) <$> (lift . newIORef $ fromOuter envBox)
   -- Definition.
   (ScmSym "define") : xs -> case xs of
     -- Simple definition.
