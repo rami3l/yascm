@@ -10,6 +10,7 @@ default-extensions:
   - TemplateHaskell
   - QuasiQuotes
   - ScopedTypeVariables
+  - PatternSynonyms
   - NoImplicitPrelude # https://github.com/commercialhaskell/stack/issues/5077
 
 dependencies:

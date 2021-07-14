@@ -9,9 +9,10 @@ import Data.Text.Lazy (Text)
 import Relude hiding (Text)
 import Types as T
   ( Env (..),
-    Exp (ScmBool, ScmCons, ScmDouble, ScmInt, ScmList, ScmPrimitive),
+    Exp (ScmBool, ScmCons, ScmDouble, ScmInt, ScmPrimitive),
     ScmErr (..),
     toConsCell,
+    pattern ScmNil,
   )
 
 prelude :: Env
@@ -55,7 +56,7 @@ list :: [Exp] -> Either ScmErr Exp
 list = Right . toConsCell
 
 isNil :: [Exp] -> Either ScmErr Exp
-isNil [ScmList []] = Right $ ScmBool True
+isNil [ScmNil] = Right $ ScmBool True
 isNil _ = Right $ ScmBool False
 
 isBoolean :: [Exp] -> Either ScmErr Exp

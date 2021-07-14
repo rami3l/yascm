@@ -1,5 +1,3 @@
-{-# LANGUAGE PatternSynonyms #-}
-
 module Types
   ( Exp (..),
     ScmErr (..),
@@ -13,6 +11,7 @@ module Types
     scmNil,
     toConsCell,
     isDefined,
+    pattern ScmNil,
   )
 where
 
@@ -49,10 +48,15 @@ data Exp
       }
   | ScmPrimitive ([Exp] -> Either ScmErr Exp)
 
--- | The special class signifying the end of a list.
+-- | The special class signifying the end of a cons list.
 -- Also used as an empty expression.
 scmNil :: Exp
 scmNil = ScmList []
+
+-- | The pattern signifying the end of a cons list.
+-- Also used as an empty expression.
+pattern ScmNil :: Exp
+pattern ScmNil = ScmList []
 
 toConsCell :: [Exp] -> Exp
 toConsCell [] = scmNil
@@ -60,7 +64,7 @@ toConsCell (x : xs) = ScmCons x . toConsCell $ xs
 
 tryToList :: Exp -> Maybe [Exp]
 tryToList (ScmList l) = Just l
-tryToList (ScmCons car' (ScmList [])) = Just [car']
+tryToList (ScmCons car' ScmNil) = Just [car']
 tryToList (ScmCons car' cdr') = tryToList cdr' & fmap (car' :)
 tryToList _ = Nothing
 

@@ -33,7 +33,7 @@ loop envBox' = do
     Right expr -> do
       mval <- lift . runExceptT $ E.eval expr envBox'
       case mval of
-        Right (T.ScmList []) -> return ()
+        Right T.ScmNil -> return ()
         Right val -> outputStrLn $ "=> " ++ show val
         Left e -> printLn e
   loop envBox'

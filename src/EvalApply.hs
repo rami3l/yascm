@@ -128,7 +128,7 @@ eval (ScmList l) envBox = case l of
     let printElem x = do
           val <- eval x envBox
           lift $ print val
-          return $ ScmList []
+          return scmNil
      in case t of
           [] -> throwE $ ScmErr "display: nothing to display"
           xs -> xs & mapM printElem >> return scmNil
