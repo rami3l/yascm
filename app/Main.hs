@@ -1,6 +1,6 @@
 module Main where
 
-import qualified ArgParse as Arg
+import ArgParse (Args (..), args)
 import Data.String.Conversions (cs)
 import Options.Applicative
   ( execParser,
@@ -20,18 +20,15 @@ stdlibPath :: String
 stdlibPath = "./scheme/stdlib.rkt"
 
 main :: IO ()
-main = dispatch =<< execParser opts
-  where
-    opts =
-      info
-        (Arg.args <**> helper)
-        ( fullDesc <> header "yascm - Yet Another SCheMe interpreter in Haskell."
-        )
+main =
+  let parser = args <**> helper
+      infoMod = fullDesc <> header "yascm - Yet Another SCheMe interpreter in Haskell."
+      opts = info parser infoMod
+   in execParser opts >>= dispatch
 
-dispatch :: Arg.Args -> IO ()
+dispatch :: Args -> IO ()
 dispatch a = do
-  let fin = Arg.fin a
-  let repl = Arg.repl a
+  let Args {fin, repl} = a
 
   {-
   putStrLn

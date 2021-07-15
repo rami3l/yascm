@@ -17,28 +17,25 @@ import Types as T
 
 prelude :: Env
 prelude =
-  Env
-    { outer = Nothing,
-      dict =
-        Map.fromList $
-          second ScmPrimitive
-            <$> [ ("+", add),
-                  ("-", sub),
-                  ("*", mul),
-                  ("/", ScmPrelude.div),
-                  ("=", eq),
-                  ("<", lt),
-                  ("<=", le),
-                  (">", gt),
-                  (">=", ge),
-                  ("car", car),
-                  ("cdr", cdr),
-                  ("cons", cons),
-                  ("list", list),
-                  ("nil?", isNil),
-                  ("boolean?", isBoolean)
-                ]
-    }
+  let pairs =
+        [ ("+", add),
+          ("-", sub),
+          ("*", mul),
+          ("/", ScmPrelude.div),
+          ("=", eq),
+          ("<", lt),
+          ("<=", le),
+          (">", gt),
+          (">=", ge),
+          ("car", car),
+          ("cdr", cdr),
+          ("cons", cons),
+          ("list", list),
+          ("nil?", isNil),
+          ("boolean?", isBoolean)
+        ]
+      dict = Map.fromList $ second ScmPrimitive <$> pairs
+   in Env {dict, outer = Nothing}
 
 car :: [Exp] -> Either ScmErr Exp
 car [ScmCons x _] = Right x
