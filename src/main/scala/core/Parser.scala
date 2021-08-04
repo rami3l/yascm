@@ -11,21 +11,19 @@ object ScmParser extends JavaTokenParsers {
     s"""[$letters$symChars][$letters$digits$symChars]*""".r ^^ Sym
   }
 
-  def quoted: Parser[Exp] = "'" ~> expr ^^ { quotee =>
-    ScmList(Sym("quote") :: quotee :: Nil)
-  }
+  def quoted: Parser[Exp] =
+    "'" ~> expr ^^ (quotee => ScmList(Sym("quote") :: quotee :: Nil))
 
   def str: Parser[Exp] = stringLiteral ^^ Str
 
-  def decimal: Parser[Exp] = """[+-]?(\.\d+|\d+\.\d*)""".r ^^ { f =>
-    ScmDouble(f.toDouble)
-  }
+  def decimal: Parser[Exp] =
+    """[+-]?(\.\d+|\d+\.\d*)""".r ^^ (f => ScmDouble(f.toDouble))
 
-  def int: Parser[Exp] = """[+-]?\d+""".r ^^ { i => ScmInt(i.toInt) }
+  def int: Parser[Exp] = """[+-]?\d+""".r ^^ (i => ScmInt(i.toInt))
   def number: Parser[Exp] = decimal | int
 
   def list: Parser[Exp] = nil | dottedList | regularList
-  def nil: Parser[Exp] = "(" ~ ")" ^^ { _ => ScmNil }
+  def nil: Parser[Exp] = "(" ~ ")" ^^ (_ => ScmNil)
   def regularList: Parser[Exp] = "(" ~> expr.+ <~ ")" ^^ ScmList
 
   // In a dotted list, it is required to add some whitespace characters after

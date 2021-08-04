@@ -31,7 +31,7 @@ object ScmPrelude {
       case (ScmInt(x), ScmDouble(y))    => ScmDouble(x + y)
       case (ScmDouble(x), ScmInt(y))    => ScmDouble(x + y)
       case (ScmDouble(x), ScmDouble(y)) => ScmDouble(x + y)
-      case _                            => throw Exception("add: expected numbers")
+      case _ => throw Exception("add: expected numbers")
     }
   }
 
@@ -45,7 +45,7 @@ object ScmPrelude {
       case (ScmInt(x), ScmDouble(y))    => ScmDouble(x * y)
       case (ScmDouble(x), ScmInt(y))    => ScmDouble(x * y)
       case (ScmDouble(x), ScmDouble(y)) => ScmDouble(x * y)
-      case _                            => throw Exception("mul: expected numbers")
+      case _ => throw Exception("mul: expected numbers")
     }
   }
 
@@ -59,7 +59,7 @@ object ScmPrelude {
       case Seq(ScmInt(x), ScmDouble(y))    => ScmDouble(x - y)
       case Seq(ScmDouble(x), ScmInt(y))    => ScmDouble(x - y)
       case Seq(ScmDouble(x), ScmDouble(y)) => ScmDouble(x - y)
-      case _                               => throw Exception("sub: expected numbers")
+      case _ => throw Exception("sub: expected numbers")
     }
   }
 
@@ -69,7 +69,7 @@ object ScmPrelude {
       case Seq(ScmInt(x), ScmDouble(y))    => ScmDouble(x / y)
       case Seq(ScmDouble(x), ScmInt(y))    => ScmDouble(x / y)
       case Seq(ScmDouble(x), ScmDouble(y)) => ScmDouble(x / y)
-      case _                               => throw Exception("div: expected numbers")
+      case _ => throw Exception("div: expected numbers")
     }
   }
 
@@ -86,7 +86,7 @@ object ScmPrelude {
       case Seq(ScmInt(x), ScmDouble(y))    => ScmBool(x < y)
       case Seq(ScmDouble(x), ScmInt(y))    => ScmBool(x < y)
       case Seq(ScmDouble(x), ScmDouble(y)) => ScmBool(x < y)
-      case _                               => throw Exception("lt: expected numbers")
+      case _ => throw Exception("lt: expected numbers")
     }
   }
 
@@ -96,7 +96,7 @@ object ScmPrelude {
       case Seq(ScmInt(x), ScmDouble(y))    => ScmBool(x <= y)
       case Seq(ScmDouble(x), ScmInt(y))    => ScmBool(x <= y)
       case Seq(ScmDouble(x), ScmDouble(y)) => ScmBool(x <= y)
-      case _                               => throw Exception("le: expected numbers")
+      case _ => throw Exception("le: expected numbers")
     }
   }
 
@@ -106,7 +106,7 @@ object ScmPrelude {
       case Seq(ScmInt(x), ScmDouble(y))    => ScmBool(x > y)
       case Seq(ScmDouble(x), ScmInt(y))    => ScmBool(x > y)
       case Seq(ScmDouble(x), ScmDouble(y)) => ScmBool(x > y)
-      case _                               => throw Exception("gt: expected numbers")
+      case _ => throw Exception("gt: expected numbers")
     }
   }
 
@@ -116,7 +116,7 @@ object ScmPrelude {
       case Seq(ScmInt(x), ScmDouble(y))    => ScmBool(x >= y)
       case Seq(ScmDouble(x), ScmInt(y))    => ScmBool(x >= y)
       case Seq(ScmDouble(x), ScmDouble(y)) => ScmBool(x >= y)
-      case _                               => throw Exception("ge: expected numbers")
+      case _ => throw Exception("ge: expected numbers")
     }
   }
 

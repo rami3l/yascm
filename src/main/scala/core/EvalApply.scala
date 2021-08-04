@@ -1,6 +1,6 @@
 package io.github.rami3l.yascm
 
-import scala.util.{Try,Success,Failure}
+import scala.util.{Try, Success, Failure}
 
 extension (env: Env) {
   def handleLambda(func: Exp, args: List[Exp]): Try[Exp] = Try {
@@ -17,15 +17,15 @@ extension (env: Env) {
   def eval(exp: Exp): Try[Exp] = Try {
     exp match {
       // * Self-evaluating types.
-      case n@ ScmInt(_) => n
-      case f@ ScmDouble(_) => f
-      case s@ Str(_) => s
+      case n @ ScmInt(_)    => n
+      case f @ ScmDouble(_) => f
+      case s @ Str(_)       => s
 
       // * Booleans and other unchangeable constants.
       // No, we should not learn Python 2, where the booleans
       // are part of the prelude!
-      case Sym("#t") => ScmBool(true)
-      case Sym("#f") => ScmBool(false)
+      case Sym("#t")  => ScmBool(true)
+      case Sym("#f")  => ScmBool(false)
       case Sym("nil") => ScmNil
 
       // * Variable evaluation by name.
@@ -38,13 +38,13 @@ extension (env: Env) {
       case ScmList(Nil) => throw Exception("eval: got empty function call")
       // Inline anonymous function invocation.
       // eg. ((lambda (x) (+ x 2)) 3) ;; => 5
-      case ScmList((func@ ScmList(_)) :: xs) => env.handleLambda(func, xs).get
+      case ScmList((func @ ScmList(_)) :: xs) => env.handleLambda(func, xs).get
       // Quote.
       case ScmList(Sym("quote") :: xs) =>
         xs match {
-          case (l@ ScmList(_)) :: Nil => l.toConsCell
-          case quotee :: Nil => quotee
-          case _             => throw Exception("quote: nothing to quote")
+          case (l @ ScmList(_)) :: Nil => l.toConsCell
+          case quotee :: Nil           => quotee
+          case _ => throw Exception("quote: nothing to quote")
         }
       // Anonymous function literal.
       // eg. (lambda (x y) *defns*)
@@ -66,7 +66,7 @@ extension (env: Env) {
           // Syntax sugar for function definition.
           // eg. (define (f x y) *defns*)
           // ->  (define f (lambda (x y) *defns*))
-          case ScmList((func@ Sym(_)) :: args) :: defns =>
+          case ScmList((func @ Sym(_)) :: args) :: defns =>
             env.eval {
               ScmList(
                 Sym("define")
@@ -93,7 +93,7 @@ extension (env: Env) {
         env.eval(cond).get match {
           case ScmBool(true)  => env.eval(then1).get
           case ScmBool(false) => env.eval(else1).get
-          case _           => throw Exception("if: expected Bool")
+          case _              => throw Exception("if: expected Bool")
         }
       }
       case ScmList(Sym("if") :: _) => throw Exception("if: ill-formed")
@@ -106,12 +106,11 @@ extension (env: Env) {
               env.eval(cond).get match {
                 case ScmBool(true)  => env.eval(then1).get
                 case ScmBool(false) => evalTail(xs1).get
-                case _           => throw Exception("cond: expected Bool")
+                case _              => throw Exception("cond: expected Bool")
               }
             case _ => throw Exception("cond: ill-formed")
           }
         }
-
         evalTail(tail).get
       }
       case ScmList(Sym("begin") :: xs) => env.evalList(xs).get
@@ -134,7 +133,7 @@ extension (env: Env) {
         }
       }
       // Call function by name.
-      case ScmList((func@ Sym(_)) :: args) => handleLambda(func, args).get
+      case ScmList((func @ Sym(_)) :: args) => handleLambda(func, args).get
 
       case _ => throw Exception("eval: unexpected expression")
     }

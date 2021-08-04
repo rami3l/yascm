@@ -7,12 +7,15 @@ import scala.util.{Try, Success, Failure}
 
 object ScmInterpreter {
 
-  /** Evaluate a Scheme code `String` consisting of one or more Scheme expressions,
-    * and return the corresponding output `String` or `Error`.
-    * Every expression will be evaluated if possible, and the final value is taken from the last one.
+  /** Evaluate a Scheme code `String` consisting of one or more Scheme
+    * expressions, and return the corresponding output `String` or `Error`.
+    * Every expression will be evaluated if possible, and the final value is
+    * taken from the last one.
     *
-    * @param line The `String` to be evaluated.
-    * @param initEnv The environment to begin the evaluation.
+    * @param line
+    *   The `String` to be evaluated.
+    * @param initEnv
+    *   The environment to begin the evaluation.
     */
   def run(line: String, initEnv: Env): Try[String] = {
     // First we need to parse the expressions.
@@ -24,12 +27,15 @@ object ScmInterpreter {
       .map { exp => exp.toString }
   }
 
-  /** Evaluate a sequence of Scheme code `String`s, each consisting of one or more Scheme expressions,
-    * and for each `String`, return the corresponding output `String` or `Error`.
-    * Every expression in a `String` will be evaluated if possible, and the final value is taken from the last one.
+  /** Evaluate a sequence of Scheme code `String`s, each consisting of one or
+    * more Scheme expressions, and for each `String`, return the corresponding
+    * output `String` or `Error`. Every expression in a `String` will be
+    * evaluated if possible, and the final value is taken from the last one.
     *
-    * @param lines The `String`s to be evaluated.
-    * @param initEnv The environment to begin the evaluation.
+    * @param lines
+    *   The `String`s to be evaluated.
+    * @param initEnv
+    *   The environment to begin the evaluation.
     */
   def runStrings(lines: Seq[String], initEnv: Env): Seq[Try[String]] = {
     lines.map { line => run(line, initEnv) }

@@ -30,9 +30,8 @@ case class ScmDouble(val value: Double) extends Exp {
   override def toString: String = s"$value"
 }
 
-/** An unevaluated Scheme list.
-  * Only used@ an AST component (eg. when expressing function calls),
-  * does not appear in evaluation results.
+/** An unevaluated Scheme list. Only used@ an AST component (eg. when expressing
+  * function calls), does not appear in evaluation results.
   */
 case class ScmList(val value: List[Exp]) extends Exp {
   override def toString: String =
@@ -53,9 +52,8 @@ sealed trait ConsCell extends Exp {
   def isList: Boolean
 }
 
-/** The special class signifying the end of a list.
-  * Also regarded as an empty list.
-  * Also used as an empty expression.
+/** The special class signifying the end of a list. Also regarded as an empty
+  * list. Also used as an empty expression.
   */
 case object ScmNil extends ConsCell {
   override def toString: String = "()"
@@ -64,8 +62,10 @@ case object ScmNil extends ConsCell {
 
 /** A `Cons` pair made up by two expressions.
   *
-  * @param car The 1st expression.
-  * @param cdr The 2nd expression.
+  * @param car
+  *   The 1st expression.
+  * @param cdr
+  *   The 2nd expression.
   */
 case class Cons(val car: Exp, val cdr: Exp) extends ConsCell {
   def tryToList: Try[List[Exp]] = Try {
