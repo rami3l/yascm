@@ -22,7 +22,7 @@ object ScmPrelude {
       "list" -> list,
       "nil?" -> isNil,
       "boolean?" -> isBoolean
-    ).map { case s -> fn => s -> Primitive(fn) }
+    ).view.mapValues(Primitive).to(HashMap)
   )
 
   def add2(x: Exp, y: Exp): Try[Exp] = Try {
