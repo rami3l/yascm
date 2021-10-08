@@ -2,6 +2,7 @@ package io.github.rami3l.yascm
 
 import collection.mutable.HashMap
 import scala.compiletime.ops.boolean
+import scala.annotation.tailrec
 
 class Env(val dict: HashMap[String, Exp], val outer: Option[Env]) {
   def this(outer: Env) = {
@@ -20,7 +21,8 @@ class Env(val dict: HashMap[String, Exp], val outer: Option[Env]) {
     dict += (sym -> defn)
   }
 
-  def setVal(
+  @tailrec
+  final def setVal(
       sym: String,
       defn: Exp,
       isSymDefined: Boolean = false

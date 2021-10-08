@@ -17,7 +17,7 @@ object ScmInterpreter {
     * @param initEnv
     *   The environment to begin the evaluation.
     */
-  def run(line: String, initEnv: Env): Try[String] = {
+  def run(line: String, initEnv: Env): Try[String] =
     // First we need to parse the expressions.
     ScmParser
       .run(line)
@@ -25,7 +25,6 @@ object ScmInterpreter {
       .flatMap { exps => initEnv.evalList(exps) }
       // Finally we focus on those ended with a successful evaluation.
       .map { exp => exp.toString }
-  }
 
   /** Evaluate a sequence of Scheme code `String`s, each consisting of one or
     * more Scheme expressions, and for each `String`, return the corresponding
@@ -37,9 +36,8 @@ object ScmInterpreter {
     * @param initEnv
     *   The environment to begin the evaluation.
     */
-  def runStrings(lines: Seq[String], initEnv: Env): Seq[Try[String]] = {
+  def runStrings(lines: Seq[String], initEnv: Env): Seq[Try[String]] =
     lines.map { line => run(line, initEnv) }
-  }
 
   @tailrec
   final def repl(initEnv: Env): Unit = {

@@ -37,13 +37,12 @@ case class ScmList(val value: List[Exp]) extends Exp {
   override def toString: String =
     value.map(_.toString).mkString(start = "(", sep = " ", end = ")")
 
-  private def toConsCellImpl(l: List[Exp]): ConsCell = {
+  private def toConsCellImpl(l: List[Exp]): ConsCell =
     if (l.isEmpty) {
       ScmNil
     } else {
       Cons(car = l.head, cdr = toConsCellImpl(l.tail))
     }
-  }
 
   def toConsCell: ConsCell = toConsCellImpl(value)
 }
@@ -75,19 +74,18 @@ case class Cons(val car: Exp, val cdr: Exp) extends ConsCell {
     }
   }
 
-  override def toString: String = {
+  override def toString: String =
     if (isList) {
       tryToList.get.mkString(start = "(", sep = " ", end = ")")
     } else {
       s"($car . $cdr)"
     }
-  }
 
   @tailrec
-  final def isList: Boolean = (car, cdr) match {
-    case (_, ScmNil)         => true
-    case (_, t @ Cons(_, _)) => t.isList
-    case (_, _)              => false
+  final def isList: Boolean = cdr match {
+    case ScmNil         => true
+    case t @ Cons(_, _) => t.isList
+    case _              => false
   }
 }
 
