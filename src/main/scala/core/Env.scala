@@ -1,6 +1,7 @@
 package io.github.rami3l.yascm
 
 import collection.mutable.HashMap
+import scala.compiletime.ops.boolean
 
 class Env(val dict: HashMap[String, Exp], val outer: Option[Env]) {
   def this(outer: Env) = {
@@ -19,12 +20,16 @@ class Env(val dict: HashMap[String, Exp], val outer: Option[Env]) {
     dict += (sym -> defn)
   }
 
-  def setVal(sym: String, defn: Exp): Unit = {
+  def setVal(
+      sym: String,
+      defn: Exp,
+      isSymDefined: Boolean = false
+  ): Unit = {
     lazy val isSymLocal = dict.get(sym).isDefined
-    lazy val isSymDefined = lookup(sym).isDefined
-    if (!isSymLocal && isSymDefined) {
+    lazy val isSymDefined1 = isSymDefined || lookup(sym).isDefined
+    if (!isSymLocal && isSymDefined1) {
       // If `sym` is not local but is defined, then `outer` must be defined.
-      outer.get.setVal(sym, defn)
+      outer.get.setVal(sym, defn, true)
     } else {
       insertVal(sym, defn)
     }
