@@ -89,13 +89,11 @@ extension (env: Env) {
           case _ => throw Exception("set!: nothing to set")
         }
       // Conditional expression.
-      case ScmList(Sym("if") :: cond :: then1 :: else1 :: Nil) => {
+      case ScmList(Sym("if") :: cond :: then1 :: else1 :: Nil) =>
         env.eval(cond).get match {
-          case ScmBool(true)  => env.eval(then1).get
-          case ScmBool(false) => env.eval(else1).get
-          case _              => throw Exception("if: expected Bool")
+          case ScmBool(cond) => env.eval(if (cond) then1 else else1).get
+          case _             => throw Exception("if: expected Bool")
         }
-      }
       case ScmList(Sym("if") :: _) => throw Exception("if: ill-formed")
       case ScmList(Sym("cond") :: tail) => {
         def evalTail(xs: List[Exp]): Try[Exp] = Try {
@@ -115,7 +113,7 @@ extension (env: Env) {
       }
       case ScmList(Sym("begin") :: xs) => env.evalList(xs).get
       case ScmList(Sym("display") :: xs) => {
-        xs.foreach { println(_) }
+        xs.foreach(println)
         ScmNil
       }
 
@@ -142,25 +140,27 @@ extension (env: Env) {
 
 extension (func: Exp) {
   def apply(args: List[Exp]): Try[Exp] = Try {
+    lazy val ex = Exception("apply: unexpected expression");
     func match {
       // `func` can only be Primitive or Closure.
       case Primitive(prim) => prim(args).get
       case Closure(body, env) => {
         val ScmList(varsList :: defns) = body
-        val localEnv = Env(outer = env)
+        val localEnv = Env(outer = Some(env))
 
         varsList match {
           case ScmList(vars) =>
-            vars.zip(args).map { (ident, arg) =>
-              localEnv.insertVal(ident.asInstanceOf[Sym].value, arg)
+            vars.zip(args).map {
+              case (Sym(ident), arg) => localEnv.insertVal(ident, arg)
+              case _                 => throw ex
             }
           case ScmNil => {}
-          case _      => throw Exception("apply: unexpected expression")
+          case _      => throw ex
         }
 
         localEnv.evalList(defns).get
       }
-      case _ => throw Exception("apply: unexpected expression")
+      case _ => throw ex
     }
   }
 }

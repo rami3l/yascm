@@ -34,11 +34,10 @@ object ScmParser extends JavaTokenParsers {
 
   def expr: Parser[Exp] = number | str | quoted | list | symbol
 
-  def eliminateComments(s: String): String = {
+  def eliminateComments(s: String): String =
     s.linesIterator
       .map { _.split(' ').takeWhile(w => !w.startsWith(";")).mkString(" ") }
       .mkString(sep = "\n")
-  }
 
   def run(s: String): Try[List[Exp]] = Try {
     parse(expr.+, eliminateComments(s)).get
