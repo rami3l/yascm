@@ -35,6 +35,7 @@ dependencies:
   - text-format
   - string-conversions
   - raw-strings-qq
+  - optics
 
 executables:
   yascm-app:
