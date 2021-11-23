@@ -1,2 +1,2 @@
-addSbtPlugin("ch.epfl.lamp" % "sbt-dotty" % "0.5.5")
-addSbtPlugin("ch.epfl.scala" % "sbt-scala3-migrate" % "0.3.1")
+addSbtPlugin("org.jmotor.sbt" % "sbt-dependency-updates" % "1.2.2")
+addSbtPlugin("ch.epfl.scala" % "sbt-scala3-migrate" % "0.4.6")

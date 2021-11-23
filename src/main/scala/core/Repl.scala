@@ -43,7 +43,7 @@ object ScmInterpreter {
   final def repl(initEnv: Env): Unit = {
     val line = readLine(text = ">> ")
     if (!line.isEmpty) {
-      print(run(line, initEnv).recover { case e => s"Error: $e" }.get)
+      println(run(line, initEnv).recover { "Error: " + _ }.get)
     }
     repl(initEnv)
   }

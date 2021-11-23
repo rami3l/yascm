@@ -64,9 +64,9 @@ case object ScmNil extends ConsCell {
   */
 case class Cons(val car: Exp, val cdr: Exp) extends ConsCell {
   def tryToList: Try[List[Exp]] = Try {
-    this match {
-      case Cons(car, ScmNil) => List(car)
-      case Cons(car, cdr)    => car :: cdr.asInstanceOf[Cons].tryToList.get
+    cdr match {
+      case ScmNil => List(car)
+      case _      => car :: cdr.asInstanceOf[Cons].tryToList.get
     }
   }
 
