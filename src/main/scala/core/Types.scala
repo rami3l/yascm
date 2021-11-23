@@ -37,14 +37,18 @@ case class ScmList(val value: List[Exp]) extends Exp {
   override def toString: String =
     value.map(_.toString).mkString(start = "(", sep = " ", end = ")")
 
-  private def toConsCellImpl(l: List[Exp]): ConsCell =
-    if (l.isEmpty) ScmNil else Cons(car = l.head, cdr = toConsCellImpl(l.tail))
-
-  def toConsCell: ConsCell = toConsCellImpl(value)
+  def toConsCell: ConsCell = ConsCell.fromSeq(value)
 }
 
 sealed trait ConsCell extends Exp {
   def isList: Boolean
+}
+
+object ConsCell {
+  def fromSeq(args: Seq[Exp]): ConsCell = args match {
+    case Nil         => ScmNil
+    case Seq(x, xs*) => Cons(x, fromSeq(xs))
+  }
 }
 
 /** The special class signifying the end of a list. Also regarded as an empty
@@ -102,12 +106,4 @@ case class Closure(val body: ScmList, val env: Env) extends Exp {
 
 case class Primitive(val value: Seq[Exp] => Try[Exp]) extends Exp {
   override def toString: String = "<Primitive>"
-}
-
-object ExpUtils {
-  def makeList(args: Seq[Exp]): Exp = args match {
-    case Nil         => ScmNil
-    case Seq(x)      => Cons(x, ScmNil)
-    case Seq(x, xs*) => Cons(x, makeList(xs))
-  }
 }

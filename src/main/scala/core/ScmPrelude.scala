@@ -141,7 +141,7 @@ object ScmPrelude {
     }
   }
 
-  def list(xs: Seq[Exp]): Try[Exp] = Try(ExpUtils.makeList(xs))
+  def list(xs: Seq[Exp]): Try[Exp] = Try(ConsCell.fromSeq(xs))
 
   def isNil(xs: Seq[Exp]): Try[Exp] = Try {
     xs match {
