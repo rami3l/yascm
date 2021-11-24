@@ -6,11 +6,11 @@ lazy val root = project
     name := "dotty-simple",
     version := "0.1.0",
     scalaVersion := dottyVersion,
-    libraryDependencies ++= {
-      Seq(
-        "com.novocode" % "junit-interface" % "0.11" % "test",
-        "org.hamcrest" % "hamcrest" % "2.2" % Test,
-        "org.scala-lang.modules" %% "scala-parser-combinators" % "2.1.0"
-      )
-    }
+    libraryDependencies ++= Seq(
+      "com.novocode" % "junit-interface" % "0.11" % "test",
+      "org.hamcrest" % "hamcrest" % "2.2" % Test,
+      "org.scala-lang.modules" %% "scala-parser-combinators" % "2.1.0",
+      "dev.optics" %% "monocle-core" % "3.0.0",
+      "org.typelevel" %% "cats-core" % "2.6.1"
+    )
   )

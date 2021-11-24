@@ -1,10 +1,10 @@
 package io.github.rami3l.yascm
 
 import scala.util.Try
-import collection.mutable.HashMap
+import collection.immutable.HashMap
 
 object ScmPrelude {
-  def env = Env(
+  val env = Env(
     outer = None,
     dict = HashMap(
       "+" -> add,
