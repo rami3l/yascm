@@ -92,7 +92,7 @@ case class Cons(val car: Exp, val cdr: Exp) extends ConsCell {
   *
   * `body := (List (List (vars) : defs))`
   */
-case class Closure(val body: ScmList, val env: Env) extends Exp {
+case class Closure(val body: ScmList, val env: STRef[Env, Env]) extends Exp {
   override def toString: String = body.value match {
     case ScmList(vars) :: _ => {
       val vars1 = vars

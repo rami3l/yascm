@@ -6,38 +6,46 @@ import scala.compiletime.ops.boolean
 import scala.annotation.tailrec
 import cats.data.StateT
 import cats.implicits._
-import scala.util.Try
+import scala.util.{Try, Failure, Success}
+import cats.data.State
+import cats.data.OptionT
 
 case class Env(
     val dict: HashMap[String, Exp] = HashMap(),
-    val outer: Option[Env]
+    val outer: STRef[Env, Option[Env]]
 ) {
-
-  /** Find the definition of a symbol.
-    */
-  def lookup(sym: String): Option[Exp] =
-    dict.get(sym).orElse { outer.flatMap { _.lookup(sym) } }
-
   def insertVal(sym: String, defn: Exp): Env =
     this.focus(_.dict).modify(_.updated(sym, defn))
-
-  def setVal(
-      sym: String,
-      defn: Exp,
-      isSymDefined: Boolean = false
-  ): Env = {
-    lazy val isSymLocal = dict.get(sym).isDefined
-    lazy val isSymDefined1 = isSymDefined || lookup(sym).isDefined
-    if (!isSymLocal && isSymDefined1) {
-      // If `sym` is not local but is defined, then `outer` must be defined.
-      this.focus(_.outer).modify(_.map(_.setVal(sym, defn, true)))
-    } else {
-      insertVal(sym, defn)
-    }
-  }
 }
 
 object Env {
+  private def lookupWithSrc(
+      sym: String
+  ): StateT[Option, Env, (STRef[Env, Env], Exp)] = StateT { env =>
+    env.dict
+      .get(sym)
+      // Either fortunately the definition of `sym` is in `this.dict`...
+      .map { defn => Some(env, ((STRef(env), defn))) }
+      // Or we should find it in `this.outer`.
+      .getOrElse {
+        val outer = env.outer.read.runA(env).value
+        outer.flatMap(lookupWithSrc(sym).run(_))
+      }
+  }
+
+  /** Find the definition of a symbol.
+    */
+  def lookup(sym: String): StateT[Option, Env, Exp] =
+    lookupWithSrc(sym).map { case (_, defn) => defn }
+
+  def setVal(
+      sym: String,
+      defn: Exp
+  ): StateT[Option, Env, Unit] =
+    lookupWithSrc(sym).map { case (envRef, _) =>
+      envRef.modify(_.insertVal(sym, defn))
+    }
+
   def handleLambda(func: Exp, args: List[Exp]): StateT[Try, Env, Exp] = for {
     func1 <- eval(func);
     args1 <- args.traverse(eval);
@@ -48,7 +56,12 @@ object Env {
     for { vs <- exps.traverse(eval) } yield vs.last
 
   def eval(exp: Exp): StateT[Try, Env, Exp] = {
-    import StateT.{inspectF, pure}
+    import cats.data.StateT.{inspectF, liftF, pure}
+    import cats.data.IndexedStateT.{mapK}
+    import OptionExt.successOrK
+
+    def failureE(e: String) = Failure(Exception(e))
+
     exp match {
       // * Self-evaluating types.
       case n @ ScmInt(_)    => pure(n)
@@ -64,33 +77,31 @@ object Env {
 
       // * Variable evaluation by name.
       case Sym(s) =>
-        inspectF { env =>
-          Try {
-            env
-              .lookup(s)
-              .getOrElse(throw Exception(s"eval: Symbol `$s` undefined"))
-          }
+        lookup(s).mapK {
+          successOrK(Exception(s"eval: Symbol `$s` undefined"))
         }
 
       // * Function calls and keywords.
-      case ScmList(Nil) => throw Exception("eval: got empty function call")
+      case ScmList(Nil) =>
+        liftF(failureE("eval: got empty function call"))
       // Inline anonymous function invocation.
       // eg. ((lambda (x) (+ x 2)) 3) ;; => 5
-      case ScmList((func @ ScmList(_)) :: xs) => env.handleLambda(func, xs).get
+      case ScmList((func @ ScmList(_)) :: xs) =>
+        handleLambda(func, xs)
       // Quote.
       case ScmList(Sym("quote") :: xs) =>
         xs match {
-          case (l @ ScmList(_)) :: Nil => l.toConsCell
-          case quotee :: Nil           => quotee
-          case _ => throw Exception("quote: nothing to quote")
+          case (l @ ScmList(_)) :: Nil => pure(l.toConsCell)
+          case quotee :: Nil           => pure(quotee)
+          case _ => liftF(failureE("quote: nothing to quote"))
         }
       // Anonymous function literal.
       // eg. (lambda (x y) *defns*)
-      case ScmList(Sym("lambda") :: xs) => {
-        // ! Here we want to clone a pointer, not to clone an Env.
-        val closEnv = env
-        Closure(body = ScmList(xs), closEnv)
-      }
+      case ScmList(Sym("lambda") :: xs) =>
+        for {
+          // ! Here we want to clone a pointer, not to clone an Env.
+          closEnv <- StateT.get
+        } yield Closure(body = ScmList(xs), closEnv)
       // Definition.
       case ScmList(Sym("define") :: xs) =>
         xs match {
