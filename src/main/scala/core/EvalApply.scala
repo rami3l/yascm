@@ -113,7 +113,7 @@ extension (env: Env) {
       }
       case ScmList(Sym("begin") :: xs) => env.evalList(xs).get
       case ScmList(Sym("display") :: xs) => {
-        xs.foreach(println)
+        xs.map(eval(_).get).foreach(println)
         ScmNil
       }
 
