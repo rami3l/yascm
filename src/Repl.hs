@@ -26,16 +26,15 @@ import Prelude (show)
 
 loop :: IORef T.Env -> InputT IO ()
 loop envBox' = do
-  let printLn = outputStrLn . show
   line :: Maybe String <- getInputLine ">> "
   whenJust (cs <$> line :: Maybe Text) $ \line' -> case P.run line' of
-    Left e -> printLn e
+    Left e -> print e
     Right expr -> do
       mval <- lift . runExceptT $ E.eval expr envBox'
       case mval of
         Right T.ScmNil -> return ()
         Right val -> outputStrLn $ "=> " ++ show val
-        Left e -> printLn e
+        Left e -> print e
   loop envBox'
 
 repl :: IORef T.Env -> IO ()
