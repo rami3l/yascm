@@ -8,13 +8,15 @@ object ScmParser extends JavaTokenParsers {
     val letters = """a-zA-Z"""
     val digits = """0-9"""
     val symChars = """!#$%&|*+\-/:<=>?@^_~""""
-    s"""[$letters$symChars][$letters$digits$symChars]*""".r ^^ Sym
+    s"""[$letters$symChars][$letters$digits$symChars]*""".r ^^ Sym.apply
   }
 
   def quoted: Parser[Exp] =
     "'" ~> expr ^^ (quotee => ScmList(Sym("quote") :: quotee :: Nil))
 
-  def str: Parser[Exp] = stringLiteral ^^ Str
+  def str: Parser[Exp] = stringLiteral ^^ { str =>
+    Str(str.stripPrefix("\"").stripSuffix("\""))
+  }
 
   def decimal: Parser[Exp] =
     """[+-]?(\.\d+|\d+\.\d*)""".r ^^ (f => ScmDouble(f.toDouble))
@@ -24,7 +26,7 @@ object ScmParser extends JavaTokenParsers {
 
   def list: Parser[Exp] = nil | dottedList | regularList
   def nil: Parser[Exp] = "(" ~ ")" ^^ (_ => ScmNil)
-  def regularList: Parser[Exp] = "(" ~> expr.+ <~ ")" ^^ ScmList
+  def regularList: Parser[Exp] = "(" ~> expr.+ <~ ")" ^^ ScmList.apply
 
   // In a dotted list, it is required to add some whitespace characters after
   // the dot, in order to avoid ambiguities with decimals.
