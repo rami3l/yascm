@@ -1,6 +1,6 @@
 package io.github.rami3l.yascm.test
 
-import io.github.rami3l.yascm._
+import io.github.rami3l.yascm.core._
 import org.junit.Test
 import org.junit.Assert._
 import org.hamcrest.Matchers._

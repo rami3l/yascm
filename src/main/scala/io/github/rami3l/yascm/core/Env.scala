@@ -1,8 +1,10 @@
-package io.github.rami3l.yascm
+package io.github.rami3l.yascm.core
 
 import collection.mutable.HashMap
 import scala.compiletime.ops.boolean
 import scala.annotation.tailrec
+import cats.effect.{IO, Ref}
+import cats.syntax.all._
 
 class Env(val dict: HashMap[String, Exp] = HashMap(), val outer: Option[Env]) {
   private def lookupWithEnv(sym: String): Option[(Env, Exp)] =

@@ -1,4 +1,4 @@
-package io.github.rami3l.yascm
+package io.github.rami3l.yascm.core
 
 import scala.util.Try
 import collection.mutable.HashMap
@@ -22,7 +22,7 @@ object ScmPrelude {
       "list" -> list,
       "nil?" -> isNil,
       "boolean?" -> isBoolean
-    ).view.mapValues(Primitive).to(HashMap)
+    ).view.mapValues(Primitive.apply).to(HashMap)
   )
 
   def add2(x: Exp, y: Exp): Try[Exp] = Try {

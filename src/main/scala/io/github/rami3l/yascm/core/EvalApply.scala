@@ -1,4 +1,4 @@
-package io.github.rami3l.yascm
+package io.github.rami3l.yascm.core
 
 import scala.util.{Try, Success, Failure}
 
