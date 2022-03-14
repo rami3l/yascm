@@ -4,6 +4,8 @@ import scala.util.Try
 import scala.annotation.tailrec
 import Numeric.Implicits._
 import Ordering.Implicits._
+import cats.data.EitherT
+import cats.effect.IO
 
 /** A Scheme expression.
   */
@@ -92,7 +94,7 @@ case class Cons(val car: Exp, val cdr: Exp) extends ConsCell {
   *
   * `body := (List (List (vars) : defs))`
   */
-case class Closure(val body: ScmList, val env: Env) extends Exp {
+case class Closure(val body: ScmList, val env: IORef[Env]) extends Exp {
   override def toString: String = body.value match {
     case ScmList(vars) :: _ => {
       val vars1 = vars
@@ -104,6 +106,6 @@ case class Closure(val body: ScmList, val env: Env) extends Exp {
   }
 }
 
-case class Primitive(val value: Seq[Exp] => Try[Exp]) extends Exp {
+case class Primitive(val value: Seq[Exp] => IO[Exp]) extends Exp {
   override def toString: String = "<Primitive>"
 }

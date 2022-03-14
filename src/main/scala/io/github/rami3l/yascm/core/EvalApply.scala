@@ -1,49 +1,56 @@
 package io.github.rami3l.yascm.core
 
 import scala.util.{Try, Success, Failure}
+import cats.data.EitherT
+import cats.effect.{IO, Ref}
+import cats.implicits._
+import cats.data.OptionT
 
-extension (env: Env) {
-  def handleLambda(func: Exp, args: List[Exp]): Try[Exp] = Try {
-    val func1 = env.eval(func).get
-    val args1 = args.map { env.eval(_).get }
-    func1.apply(args1).get
-  }
+extension (env: IORef[Env]) {
+  def handleLambda(func: Exp, args: List[Exp]): IO[Exp] =
+    for {
+      func1 <- env.eval(func)
+      args1 <- args.traverse { env.eval(_) }
+      res <- func1.apply(args1)
+    } yield res
 
-  def evalList(exps: Seq[Exp]): Try[Exp] = Try {
-    exps.init.foreach { env.eval(_).get }
-    env.eval(exps.last).get
-  }
+  def evalList(exps: Seq[Exp]): IO[Exp] = for {
+    _ <- exps.init.traverse(env.eval(_))
+    res <- env.eval(exps.last)
+  } yield res
 
-  def eval(exp: Exp): Try[Exp] = Try {
+  def eval(exp: Exp): IO[Exp] =
     exp match {
       // * Self-evaluating types.
-      case n @ ScmInt(_)    => n
-      case f @ ScmDouble(_) => f
-      case s @ Str(_)       => s
+      case n @ ScmInt(_)    => n.pure
+      case f @ ScmDouble(_) => f.pure
+      case s @ Str(_)       => s.pure
 
       // * Booleans and other unchangeable constants.
       // No, we should not learn Python 2, where the booleans
       // are part of the prelude!
-      case Sym("#t")  => ScmBool(true)
-      case Sym("#f")  => ScmBool(false)
-      case Sym("nil") => ScmNil
+      case Sym("#t")  => ScmBool(true).pure
+      case Sym("#f")  => ScmBool(false).pure
+      case Sym("nil") => ScmNil.pure
 
       // * Variable evaluation by name.
       case Sym(s) =>
-        env
-          .lookup(s)
-          .getOrElse(throw Exception(s"eval: Symbol `$s` undefined"))
+        for {
+          defn <- env.lookup(s).value
+          res <- IO.fromOption(defn)(Exception(s"eval: Symbol `$s` undefined"))
+        } yield res
 
       // * Function calls and keywords.
-      case ScmList(Nil) => throw Exception("eval: got empty function call")
+      case ScmList(Nil) =>
+        IO.raiseError(Exception("eval: got empty function call"))
       // Inline anonymous function invocation.
       // eg. ((lambda (x) (+ x 2)) 3) ;; => 5
-      case ScmList((func @ ScmList(_)) :: xs) => env.handleLambda(func, xs).get
+      case ScmList((func @ ScmList(_)) :: xs) => env.handleLambda(func, xs)
       // Quote.
       case ScmList(Sym("quote") :: xs) =>
         xs match {
-          case (l @ ScmList(_)) :: Nil => l.toConsCell
-          case quotee :: Nil           => quotee
+          case (l @ ScmList(_)) :: Nil => l.toConsCell.pure
+          case quotee :: Nil           => quotee.pure
           case _ => throw Exception("quote: nothing to quote")
         }
       // Anonymous function literal.
@@ -74,7 +81,7 @@ extension (env: Env) {
                   :: ScmList(Sym("lambda") :: ScmList(args) :: defns)
                   :: Nil
               )
-            }.get
+            }
           case _ => throw Exception("define: nothing to define")
         }
       // Variable reset.
@@ -82,7 +89,7 @@ extension (env: Env) {
         xs match {
           // We can only reset a value that is already defined.
           case Sym(sym) :: defn :: Nil if env.lookup(sym).isDefined => {
-            val defn1 = env.eval(defn).get
+            val defn1 = env.eval(defn)
             env.setVal(sym, defn1)
             ScmNil
           }
@@ -135,32 +142,31 @@ extension (env: Env) {
 
       case _ => throw Exception("eval: unexpected expression")
     }
-  }
 }
 
 extension (func: Exp) {
-  def apply(args: List[Exp]): Try[Exp] = Try {
+  def apply(args: List[Exp]): IO[Exp] = {
     lazy val ex = Exception("apply: unexpected expression");
     func match {
       // `func` can only be Primitive or Closure.
-      case Primitive(prim) => prim(args).get
+      case Primitive(prim) => prim(args)
       case Closure(body, env) => {
         val ScmList(varsList :: defns) = body
-        val localEnv = Env(outer = Some(env))
+        val localEnv = Ref.of(Env(outer = Some(env)))
 
         varsList match {
           case ScmList(vars) =>
             vars.zip(args).map {
               case (Sym(ident), arg) => localEnv.insertVal(ident, arg)
-              case _                 => throw ex
+              case _                 => IO.raiseError(ex)
             }
           case ScmNil => {}
-          case _      => throw ex
+          case _      => IO.raiseError(ex)
         }
 
-        localEnv.evalList(defns).get
+        localEnv.evalList(defns)
       }
-      case _ => throw ex
+      case _ => EitherT.leftT(ex)
     }
   }
 }
