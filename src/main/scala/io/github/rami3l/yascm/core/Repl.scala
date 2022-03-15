@@ -26,12 +26,14 @@ object ScmInterpreter {
   } // Finally we focus on those ended with a successful evaluation.
   yield res.toString
 
-  @tailrec
-  final def repl(initEnv: IORef[Env]): IO[Unit] = {
-    val line = readLine(text = ">> ")
-    if (!line.isEmpty) {
-      println(run(line, initEnv).handleError("Error: " + _))
-    }
-    repl(initEnv)
-  }
+  final def repl(initEnv: IORef[Env]): IO[Unit] =
+    for {
+      line <- IO.print(">> ") >> IO.readLine
+      _ <- IO.unlessA(line.isEmpty) {
+        run(line, initEnv)
+          .handleError("Error: " + _)
+          .flatMap(IO.println)
+      }
+      _ <- repl(initEnv)
+    } yield ()
 }

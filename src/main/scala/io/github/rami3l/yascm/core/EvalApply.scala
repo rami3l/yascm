@@ -87,22 +87,19 @@ extension (env: IORef[Env]) {
         }
       // Variable reset.
       case ScmList(Sym("set!") :: xs) => {
-        lazy val ex = IO.raiseError(Exception("set!: nothing to set"))
+        lazy val ex = Exception("set!: nothing to set")
         xs match {
           // We can only reset a value that is already defined.
           case Sym(sym) :: defn :: Nil =>
             for {
-              defn <- env.lookup(sym).value
-              res <- defn
-                .map(defn =>
-                  for {
-                    defn1 <- env.eval(defn)
-                    _ <- env.setVal(sym, defn1)
-                  } yield ScmNil
-                )
-                .getOrElse(ex)
+              mDefn <- env.lookup(sym).value
+              defn <- IO.fromOption(mDefn)(ex)
+              res <- for {
+                evDefn <- env.eval(defn)
+                _ <- env.setVal(sym, evDefn)
+              } yield ScmNil
             } yield res
-          case _ => ex
+          case _ => IO.raiseError(ex)
         }
       }
       // Conditional expression.

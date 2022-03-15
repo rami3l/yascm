@@ -39,5 +39,5 @@ extension (boxEnv: IORef[Env]) {
     lookupWithEnv(sym)
       .map(_._1)
       .getOrElse(boxEnv)
-      .map(_.insertVal(sym, defn))
+      .flatMap(_.insertVal(sym, defn))
 }
