@@ -1,12 +1,13 @@
-package io.github.rami3l.yascm
+package io.github.rami3l.yascm.core
 
 import scala.util.Try
-import collection.mutable.HashMap
+import collection.immutable.HashMap
+import cats.effect.{Ref, IO}
 
 object ScmPrelude {
   def env = Env(
     outer = None,
-    dict = HashMap(
+    dict = Map(
       "+" -> add,
       "-" -> sub,
       "*" -> mul,
@@ -22,8 +23,12 @@ object ScmPrelude {
       "list" -> list,
       "nil?" -> isNil,
       "boolean?" -> isBoolean
-    ).view.mapValues(Primitive).to(HashMap)
+    ).view
+      .mapValues(f => Primitive(f.andThen(IO.fromTry)))
+      .to(HashMap)
   )
+
+  def boxEnv: IO[IORef[Env]] = Ref.of[IO, Env](env)
 
   def add2(x: Exp, y: Exp): Try[Exp] = Try {
     (x, y) match {
