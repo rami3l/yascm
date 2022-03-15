@@ -142,19 +142,6 @@ extension (env: IORef[Env]) {
           _ <- exps.traverse(IO.println)
         } yield ScmNil
 
-      // Exit.
-      case ScmList(Sym("exit") :: xs) => {
-        def exit(code: Int): IO[Exp] = IO {
-          System.exit(code)
-          ScmNil
-        }
-
-        xs match {
-          case Nil                 => exit(0)
-          case ScmInt(code) :: Nil => exit(code)
-          case _ => IO.raiseError(Exception("exit: expected Int"))
-        }
-      }
       // Call function by name.
       case ScmList((func @ Sym(_)) :: args) => handleLambda(func, args)
       case _ => IO.raiseError(Exception("eval: unexpected expression"))

@@ -24,10 +24,9 @@ object ScmInterpreter {
   def run(line: String, initEnv: IORef[Env]): IO[String] = for {
     // First we need to parse the expressions.
     tt <- IO.fromTry(ScmParser.run(line))
-    // Then we need to evaluated them.
+    // Then we need to evaluated them, focusing on those ended with a successful evaluation.
     res <- initEnv.evalList(tt)
-  } // Finally we focus on those ended with a successful evaluation.
-  yield res.toString
+  } yield res.toString
 
   final def repl(initEnv: IORef[Env]): IO[Unit] =
     for {
