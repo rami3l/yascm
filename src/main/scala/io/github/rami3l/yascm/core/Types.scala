@@ -1,11 +1,13 @@
 package io.github.rami3l.yascm.core
 
-import scala.util.Try
-import scala.annotation.tailrec
-import Numeric.Implicits._
-import Ordering.Implicits._
 import cats.data.EitherT
 import cats.effect.IO
+
+import scala.annotation.tailrec
+import scala.util.Try
+
+import Numeric.Implicits._
+import Ordering.Implicits._
 
 /** A Scheme expression.
   */

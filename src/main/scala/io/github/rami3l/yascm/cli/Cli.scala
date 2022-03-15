@@ -1,9 +1,9 @@
 package io.github.rami3l.yascm.cli
 
-import io.github.rami3l.yascm.core._
-import cats.effect.IOApp
-import cats.effect.IO
 import cats.effect.ExitCode
+import cats.effect.IO
+import cats.effect.IOApp
+import io.github.rami3l.yascm.core._
 
 object App extends IOApp {
   def run(args: List[String]): IO[ExitCode] =

@@ -1,10 +1,13 @@
 package io.github.rami3l.yascm.core
 
+import cats.effect.IO
+
 import scala.annotation.tailrec
 import scala.io.StdIn.readLine
+import scala.util.Failure
+import scala.util.Success
+import scala.util.Try
 import scala.util.control.Breaks._
-import scala.util.{Try, Success, Failure}
-import cats.effect.IO
 
 object ScmInterpreter {
 

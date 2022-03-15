@@ -1,7 +1,7 @@
 package io.github.rami3l.yascm.core
 
-import scala.util.parsing.combinator._
 import scala.util.Try
+import scala.util.parsing.combinator._
 
 object ScmParser extends JavaTokenParsers {
   def symbol: Parser[Exp] = {

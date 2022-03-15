@@ -1,22 +1,26 @@
 package io.github.rami3l.yascm.core
 
-import scala.util.{Try, Success, Failure}
 import cats.data.EitherT
-import cats.effect.{IO, Ref}
-import cats.implicits._
 import cats.data.OptionT
+import cats.effect.IO
+import cats.effect.Ref
+import cats.implicits._
+
 import scala.annotation.tailrec
+import scala.util.Failure
+import scala.util.Success
+import scala.util.Try
 
 extension (env: IORef[Env]) {
   def handleLambda(func: Exp, args: List[Exp]): IO[Exp] =
     for {
       func1 <- env.eval(func)
-      args1 <- args.traverse { env.eval(_) }
+      args1 <- args.traverse(env.eval)
       res <- func1.apply(args1)
     } yield res
 
   def evalList(exps: Seq[Exp]): IO[Exp] = for {
-    _ <- exps.init.traverse(env.eval(_))
+    _ <- exps.init.traverse(env.eval)
     res <- env.eval(exps.last)
   } yield res
 

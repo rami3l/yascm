@@ -1,14 +1,17 @@
 package io.github.rami3l.yascm.core
 
-import collection.immutable.HashMap
-import scala.compiletime.ops.boolean
-import scala.annotation.tailrec
 import cats.Alternative
-import cats.effect.{IO, Ref}
-import cats.syntax.all._
 import cats.data.OptionT
+import cats.effect.IO
+import cats.effect.Ref
 import cats.implicits._
+import cats.syntax.all._
 import monocle.syntax.all._
+
+import scala.annotation.tailrec
+import scala.compiletime.ops.boolean
+
+import collection.immutable.HashMap
 
 case class Env(
     val dict: HashMap[String, Exp] = HashMap(),

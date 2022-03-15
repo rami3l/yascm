@@ -1,11 +1,11 @@
 package io.github.rami3l.yascm.test
 
-import io.github.rami3l.yascm.core._
-import cats.implicits._
 import cats.effect.IO
 import cats.effect.testing.scalatest.AsyncIOSpec
-import org.scalatest.matchers.should.Matchers
+import cats.implicits._
+import io.github.rami3l.yascm.core._
 import org.scalatest.freespec.AsyncFreeSpec
+import org.scalatest.matchers.should.Matchers
 
 class ScmParserTest extends AsyncFreeSpec with AsyncIOSpec with Matchers {
   def checkParse(pairs: (String, String)*) =

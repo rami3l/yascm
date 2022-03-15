@@ -1,8 +1,11 @@
 package io.github.rami3l.yascm.core
 
+import cats.effect.IO
+import cats.effect.Ref
+
 import scala.util.Try
+
 import collection.immutable.HashMap
-import cats.effect.{Ref, IO}
 
 object ScmPrelude {
   def env = Env(
