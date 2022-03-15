@@ -93,7 +93,8 @@ extension (env: IORef[Env]) {
           case Sym(sym) :: defn :: Nil =>
             for {
               mDefn <- env.lookup(sym).value
-              defn <- IO.fromOption(mDefn)(ex)
+              // Throw an error when sym is not defined in env.
+              _ <- IO.fromOption(mDefn)(ex)
               res <- for {
                 evDefn <- env.eval(defn)
                 _ <- env.setVal(sym, evDefn)
@@ -134,7 +135,7 @@ extension (env: IORef[Env]) {
       case ScmList(Sym("display") :: xs) =>
         for {
           exps <- xs.traverse(eval)
-          _ = exps.foreach(println)
+          _ <- exps.traverse(IO.println)
         } yield ScmNil
 
       // Exit.
