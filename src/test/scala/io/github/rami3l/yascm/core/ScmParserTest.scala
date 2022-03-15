@@ -1,19 +1,24 @@
 package io.github.rami3l.yascm.test
 
 import io.github.rami3l.yascm.core._
-import org.junit.Test
-import org.junit.Assert._
-import org.hamcrest.Matchers._
+import cats.implicits._
+import cats.effect.IO
+import cats.effect.testing.scalatest.AsyncIOSpec
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.freespec.AsyncFreeSpec
 
-class ScmParserTest {
-  def checkParse(pairs: (String, String)*): Unit = {
-    pairs.foreach { case (input, expected) =>
-      // Print all the expressions à la Lisp, seperated with spaces.
-      assertThat(ScmParser.run(input).get.mkString(sep = " "), is(expected))
-    }
-  }
+class ScmParserTest extends AsyncFreeSpec with AsyncIOSpec with Matchers {
+  def checkParse(pairs: (String, String)*) =
+    pairs
+      .traverse { case (input, expected) =>
+        for {
+          // Print all the expressions à la Lisp, seperated with spaces.
+          tt <- IO.fromTry(ScmParser.run(input))
+        } yield (tt.mkString(sep = " "), expected)
+      }
+      .asserting(pairs => pairs.map(_._1) should equal(pairs.map(_._2)))
 
-  @Test def simpleParsing = {
+  "simple parsing" in {
     val res = "(define inc (lambda (x) (+ x 1))) (inc 2)"
     checkParse(
       res -> res,
@@ -25,7 +30,7 @@ class ScmParserTest {
     )
   }
 
-  @Test def handleComment = {
+  "handle comment" in {
     val res = "(define inc (lambda (x) (+ x 1))) (inc 2)"
     checkParse(
       """(define inc (lambda (x) (+ x 1))) ; this is a function
@@ -41,7 +46,7 @@ class ScmParserTest {
     )
   }
 
-  @Test def handleSyntaxSugar = checkParse(
+  "handle syntax sugar" in checkParse(
     "(quote (1 2 a))" -> "(quote (1 2 a))",
     "'(1 2 a)" -> "(quote (1 2 a))",
     "(1 . 2)" -> "(1 . 2)",

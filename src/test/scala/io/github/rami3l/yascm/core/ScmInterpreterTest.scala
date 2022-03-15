@@ -1,25 +1,33 @@
 package io.github.rami3l.yascm.test
 
 import io.github.rami3l.yascm.core._
-import org.junit.Test
-import org.junit.Assert._
-import org.hamcrest.Matchers._
+import cats.implicits._
+import cats.effect.IO
+import cats.effect.testing.scalatest.AsyncIOSpec
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.freespec.AsyncFreeSpec
+import org.scalatest.Succeeded
+import org.scalatest.Inspectors._
 
-class ScmInterpreterTest {
+class ScmInterpreterTest extends AsyncFreeSpec with AsyncIOSpec with Matchers {
   // Here we simply assume that there will be only one expression to parse.
-  def parse(input: String): Exp = ScmParser.run(input).get.last
+  def parse(input: String): IO[Exp] =
+    IO.fromTry(ScmParser.run(input)).map(_.last)
 
-  def checkIo(pairs: (String, String)*): Unit = {
-    // I feel a bit sad for Scala: the reference to `prelude` is immutable,
-    // but the underlying data is mutable.
-    val prelude = ScmPrelude.env
-    pairs.foreach { case (expStr, expected) =>
-      val res = prelude.eval(parse(expStr)).get
-      assertThat(res.toString, is(expected))
-    }
-  }
+  def checkIo(pairs: (String, String)*) =
+    (for {
+      prelude <- ScmPrelude.boxEnv
+      res <- pairs.traverse { case (expStr, expected) =>
+        for {
+          tt <- parse(expStr)
+          res <- prelude.eval(tt)
+        } yield (res.toString, expected)
+      }
+    } yield res).asserting(pairs =>
+      pairs.map(_._1) should equal(pairs.map(_._2))
+    )
 
-  @Test def lists = checkIo(
+  "lists" in checkIo(
     "nil" -> "()",
     "'()" -> "()",
     "'(())" -> "(())",
@@ -30,7 +38,7 @@ class ScmInterpreterTest {
     "'(1 . (2 . (a . ())))" -> "(1 2 a)"
   )
 
-  @Test def basicCalc = checkIo(
+  "basic calc" in checkIo(
     "(+ 1 2)" -> "3",
     "(+ 1 (* 2 3))" -> "7",
     "(+ 3 (* 2 1 3) 1)" -> "10",
@@ -44,7 +52,7 @@ class ScmInterpreterTest {
       |                 3)""".stripMargin -> "6"
   )
 
-  @Test def basicFuncDef = checkIo(
+  "basic func def" in checkIo(
     "(define x 3)" -> "()",
     "x" -> "3",
     "(define y 101.1)" -> "()",
@@ -60,14 +68,14 @@ class ScmInterpreterTest {
     "(+ (one) (+ 2.0 x))" -> "6.0"
   )
 
-  @Test def cond = checkIo(
+  "cond" in checkIo(
     "(if #t 123 wtf)" -> "123",
     "(if #f wtf 123)" -> "123",
     "(cond (#f wtf0) (#f wtf1) (#t 456) (else wtf3))" -> "456",
     "(cond (#f wtf0) (#f wtf1) (#f wtf2) (else 789))" -> "789"
   )
 
-  @Test def eq = checkIo(
+  "eq" in checkIo(
     "(define one (lambda () 1))" -> "()",
     "(= 1 1)" -> "#t",
     "(= 1 (one))" -> "#t",
@@ -82,7 +90,7 @@ class ScmInterpreterTest {
     "(if (= (one) (+ 4 5)) wtf 123)" -> "123"
   )
 
-  @Test def consAndList = checkIo(
+  "cons & list" in checkIo(
     "(car (cons 123 456))" -> "123",
     "(cdr (cons 123 456))" -> "456",
     "(define p (cons (cons 1 2) (cons 3 4)))" -> "()",
@@ -94,20 +102,20 @@ class ScmInterpreterTest {
     "(cdr (cdr (cdr l)))" -> "()"
   )
 
-  @Test def begin = checkIo(
+  "begin" in checkIo(
     "(begin (define one (lambda () 1)) (+ (one) 2))" -> "3"
   )
 
-  @Test def sugarLambdaBody = checkIo(
+  "sugar lambda body" in checkIo(
     """((lambda (x y z)
       |    (quote whatever)
-      |    (+ x            
-      |       (+ y z))) 1  
-      |                 2  
+      |    (+ x
+      |       (+ y z))) 1
+      |                 2
       |                 3)""".stripMargin -> "6"
   )
 
-  @Test def sugarFuncDef = checkIo(
+  "sugar func def" in checkIo(
     "(define (one) 1)" -> "()",
     "(+ (one) 2)" -> "3",
     "(define (inc x) (+ 1 x))" -> "()",
@@ -121,7 +129,7 @@ class ScmInterpreterTest {
     "(three 114)" -> "3"
   )
 
-  @Test def basicEnv = checkIo(
+  "basic env" in checkIo(
     "(define inc (lambda (x) (+ x 1)))" -> "()",
     "(define x 3)" -> "()",
     "(set! x (inc x))" -> "()",
@@ -130,7 +138,7 @@ class ScmInterpreterTest {
     "x" -> "5"
   )
 
-  @Test def bankAccount = checkIo(
+  "bank account" in checkIo(
     """(define account
       |    (lambda (bal)
       |        (lambda (amt)
@@ -143,7 +151,7 @@ class ScmInterpreterTest {
     "(a1 10)" -> "120"
   )
 
-  @Test def sqrt200 = checkIo(
+  "sqrt(200)" in checkIo(
     "(define (abs x) (if (>= x 0) x (- 0 x)))" -> "()",
     """(define (newton guess function derivative epsilon)
       |    (define guess2 (- guess (/ (function guess) (derivative guess))))
@@ -159,7 +167,7 @@ class ScmInterpreterTest {
     "(< (square-root 200) 14.14215)" -> "#t"
   )
 
-  @Test def fibonacci = checkIo(
+  "fibonacci" in checkIo(
     "(define fib (lambda (n) (if (< n 2) 1 (+ (fib (- n 1)) (fib (- n 2))))))" -> "()",
     "(fib 20)" -> "10946",
     "(define range (lambda (a b) (if (= a b) (quote ()) (cons a (range (+ a 1) b)))))" -> "()",
@@ -168,14 +176,14 @@ class ScmInterpreterTest {
     "(map fib (range 0 10))" -> "(1 1 2 3 5 8 13 21 34 55)"
   )
 
-  @Test def manOrBoy4 = checkIo(
+  "manOrBoy(4)" in checkIo(
     """(define A (lambda (k x1 x2 x3 x4 x5)
       |    (define B (lambda () (set! k (- k 1)) (A k B x1 x2 x3 x4)))
       |        (if (<= k 0) (+ (x4) (x5)) (B))))""".stripMargin -> "()",
     "(A 4 (lambda () 1) (lambda () -1) (lambda () -1) (lambda () 1) (lambda () 0))" -> "1"
   )
 
-  @Test def manOrBoy10 = checkIo(
+  "manOrBoy(10)" in checkIo(
     """(define A (lambda (k x1 x2 x3 x4 x5)
       |    (define B (lambda () (set! k (- k 1)) (A k B x1 x2 x3 x4)))
       |        (if (<= k 0) (+ (x4) (x5)) (B))))""".stripMargin -> "()",

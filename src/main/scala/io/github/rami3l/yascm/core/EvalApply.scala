@@ -5,6 +5,7 @@ import cats.data.EitherT
 import cats.effect.{IO, Ref}
 import cats.implicits._
 import cats.data.OptionT
+import scala.annotation.tailrec
 
 extension (env: IORef[Env]) {
   def handleLambda(func: Exp, args: List[Exp]): IO[Exp] =
@@ -51,25 +52,25 @@ extension (env: IORef[Env]) {
         xs match {
           case (l @ ScmList(_)) :: Nil => l.toConsCell.pure
           case quotee :: Nil           => quotee.pure
-          case _ => throw Exception("quote: nothing to quote")
+          case _ => IO.raiseError(Exception("quote: nothing to quote"))
         }
       // Anonymous function literal.
       // eg. (lambda (x y) *defns*)
       case ScmList(Sym("lambda") :: xs) => {
         // ! Here we want to clone a pointer, not to clone an Env.
         val closEnv = env
-        Closure(body = ScmList(xs), closEnv)
+        Closure(body = ScmList(xs), closEnv).pure
       }
       // Definition.
       case ScmList(Sym("define") :: xs) =>
         xs match {
           // Simple definition.
           // eg. (define f (lambda (x y) *defns*))
-          case Sym(sym) :: defn :: Nil => {
-            val defn1 = env.eval(defn).get
-            env.insertVal(sym, defn1)
-            ScmNil
-          }
+          case Sym(sym) :: defn :: Nil =>
+            for {
+              defn1 <- env.eval(defn)
+              _ <- env.insertVal(sym, defn1)
+            } yield ScmNil
           // Syntax sugar for function definition.
           // eg. (define (f x y) *defns*)
           // ->  (define f (lambda (x y) *defns*))
@@ -82,51 +83,66 @@ extension (env: IORef[Env]) {
                   :: Nil
               )
             }
-          case _ => throw Exception("define: nothing to define")
+          case _ => IO.raiseError(Exception("define: nothing to define"))
         }
       // Variable reset.
-      case ScmList(Sym("set!") :: xs) =>
+      case ScmList(Sym("set!") :: xs) => {
+        lazy val ex = IO.raiseError(Exception("set!: nothing to set"))
         xs match {
           // We can only reset a value that is already defined.
-          case Sym(sym) :: defn :: Nil if env.lookup(sym).isDefined => {
-            val defn1 = env.eval(defn)
-            env.setVal(sym, defn1)
-            ScmNil
-          }
-          case _ => throw Exception("set!: nothing to set")
+          case Sym(sym) :: defn :: Nil =>
+            for {
+              defn <- env.lookup(sym).value
+              res <- defn
+                .map(defn =>
+                  for {
+                    defn1 <- env.eval(defn)
+                    _ <- env.setVal(sym, defn1)
+                  } yield ScmNil
+                )
+                .getOrElse(ex)
+            } yield res
+          case _ => ex
         }
+      }
       // Conditional expression.
       case ScmList(Sym("if") :: cond :: then1 :: else1 :: Nil) =>
-        env.eval(cond).get match {
-          case ScmBool(cond) => env.eval(if (cond) then1 else else1).get
-          case _             => throw Exception("if: expected Bool")
-        }
-      case ScmList(Sym("if") :: _) => throw Exception("if: ill-formed")
+        for {
+          cond <- env.eval(cond)
+          res <- cond match {
+            case ScmBool(cond) => env.eval(if (cond) then1 else else1)
+            case _             => IO.raiseError(Exception("if: expected Bool"))
+          }
+        } yield res
+      case ScmList(Sym("if") :: _) => IO.raiseError(Exception("if: ill-formed"))
       case ScmList(Sym("cond") :: tail) => {
-        def evalTail(xs: List[Exp]): Try[Exp] = Try {
+        def evalTail(xs: List[Exp]): IO[Exp] =
           xs match {
             case ScmList(Sym("else") :: then1 :: Nil) :: Nil =>
-              env.eval(then1).get
+              env.eval(then1)
             case ScmList(cond :: then1 :: Nil) :: xs1 =>
-              env.eval(cond).get match {
-                case ScmBool(true)  => env.eval(then1).get
-                case ScmBool(false) => evalTail(xs1).get
-                case _              => throw Exception("cond: expected Bool")
+              env.eval(cond).flatMap {
+                _ match {
+                  case ScmBool(true)  => env.eval(then1)
+                  case ScmBool(false) => evalTail(xs1)
+                  case _ => IO.raiseError(Exception("cond: expected Bool"))
+                }
               }
-            case _ => throw Exception("cond: ill-formed")
+            case _ => IO.raiseError(Exception("cond: ill-formed"))
           }
-        }
-        evalTail(tail).get
+
+        evalTail(tail)
       }
-      case ScmList(Sym("begin") :: xs) => env.evalList(xs).get
-      case ScmList(Sym("display") :: xs) => {
-        xs.map(eval(_).get).foreach(println)
-        ScmNil
-      }
+      case ScmList(Sym("begin") :: xs) => env.evalList(xs)
+      case ScmList(Sym("display") :: xs) =>
+        for {
+          exps <- xs.traverse(eval)
+          _ = exps.foreach(println)
+        } yield ScmNil
 
       // Exit.
       case ScmList(Sym("exit") :: xs) => {
-        def exit(code: Int): Exp = {
+        def exit(code: Int): IO[Exp] = IO {
           System.exit(code)
           ScmNil
         }
@@ -134,39 +150,39 @@ extension (env: IORef[Env]) {
         xs match {
           case Nil                 => exit(0)
           case ScmInt(code) :: Nil => exit(code)
-          case _                   => throw Exception("exit: expected Int")
+          case _ => IO.raiseError(Exception("exit: expected Int"))
         }
       }
       // Call function by name.
-      case ScmList((func @ Sym(_)) :: args) => handleLambda(func, args).get
-
-      case _ => throw Exception("eval: unexpected expression")
+      case ScmList((func @ Sym(_)) :: args) => handleLambda(func, args)
+      case _ => IO.raiseError(Exception("eval: unexpected expression"))
     }
 }
 
 extension (func: Exp) {
   def apply(args: List[Exp]): IO[Exp] = {
-    lazy val ex = Exception("apply: unexpected expression");
+    lazy val ex = IO.raiseError(Exception("eval: unexpected expression"))
     func match {
       // `func` can only be Primitive or Closure.
       case Primitive(prim) => prim(args)
       case Closure(body, env) => {
         val ScmList(varsList :: defns) = body
-        val localEnv = Ref.of(Env(outer = Some(env)))
-
-        varsList match {
-          case ScmList(vars) =>
-            vars.zip(args).map {
-              case (Sym(ident), arg) => localEnv.insertVal(ident, arg)
-              case _                 => IO.raiseError(ex)
-            }
-          case ScmNil => {}
-          case _      => IO.raiseError(ex)
-        }
-
-        localEnv.evalList(defns)
+        for {
+          localEnv <- Ref.of[IO, Env](Env(outer = Some(env)))
+          _ <- varsList match {
+            case ScmList(vars) =>
+              vars.zip(args).traverse {
+                case (Sym(ident), arg) => localEnv.insertVal(ident, arg)
+                case _ =>
+                  IO.raiseError(Exception("eval: unexpected expression"))
+              }
+            case ScmNil => ScmNil.pure[IO]
+            case _ => IO.raiseError(Exception("eval: unexpected expression"))
+          }
+          res <- localEnv.evalList(defns)
+        } yield res
       }
-      case _ => EitherT.leftT(ex)
+      case _ => ex
     }
   }
 }

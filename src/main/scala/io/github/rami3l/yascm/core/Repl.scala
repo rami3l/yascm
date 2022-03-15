@@ -4,6 +4,7 @@ import scala.annotation.tailrec
 import scala.io.StdIn.readLine
 import scala.util.control.Breaks._
 import scala.util.{Try, Success, Failure}
+import cats.effect.IO
 
 object ScmInterpreter {
 
@@ -17,33 +18,19 @@ object ScmInterpreter {
     * @param initEnv
     *   The environment to begin the evaluation.
     */
-  def run(line: String, initEnv: Env): Try[String] =
+  def run(line: String, initEnv: IORef[Env]): IO[String] = for {
     // First we need to parse the expressions.
-    ScmParser
-      .run(line)
-      // Then we need to evaluated them.
-      .flatMap(initEnv.evalList)
-      // Finally we focus on those ended with a successful evaluation.
-      .map(_.toString())
-
-  /** Evaluate a sequence of Scheme code `String`s, each consisting of one or
-    * more Scheme expressions, and for each `String`, return the corresponding
-    * output `String` or `Error`. Every expression in a `String` will be
-    * evaluated if possible, and the final value is taken from the last one.
-    *
-    * @param lines
-    *   The `String`s to be evaluated.
-    * @param initEnv
-    *   The environment to begin the evaluation.
-    */
-  def runStrings(lines: Seq[String], initEnv: Env): Seq[Try[String]] =
-    lines.map { run(_, initEnv) }
+    tt <- IO.fromTry(ScmParser.run(line))
+    // Then we need to evaluated them.
+    res <- initEnv.evalList(tt)
+  } // Finally we focus on those ended with a successful evaluation.
+  yield res.toString
 
   @tailrec
-  final def repl(initEnv: Env): Unit = {
+  final def repl(initEnv: IORef[Env]): IO[Unit] = {
     val line = readLine(text = ">> ")
     if (!line.isEmpty) {
-      println(run(line, initEnv).recover { "Error: " + _ }.get)
+      println(run(line, initEnv).handleError("Error: " + _))
     }
     repl(initEnv)
   }

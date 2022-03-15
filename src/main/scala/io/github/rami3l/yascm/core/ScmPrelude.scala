@@ -1,12 +1,13 @@
 package io.github.rami3l.yascm.core
 
 import scala.util.Try
-import collection.mutable.HashMap
+import collection.immutable.HashMap
+import cats.effect.{Ref, IO}
 
 object ScmPrelude {
   def env = Env(
     outer = None,
-    dict = HashMap(
+    dict = Map(
       "+" -> add,
       "-" -> sub,
       "*" -> mul,
@@ -22,8 +23,12 @@ object ScmPrelude {
       "list" -> list,
       "nil?" -> isNil,
       "boolean?" -> isBoolean
-    ).view.mapValues(Primitive.apply).to(HashMap)
+    ).view
+      .mapValues(f => Primitive(f.andThen(IO.fromTry)))
+      .to(HashMap)
   )
+
+  def boxEnv: IO[IORef[Env]] = Ref.of[IO, Env](env)
 
   def add2(x: Exp, y: Exp): Try[Exp] = Try {
     (x, y) match {
@@ -31,7 +36,7 @@ object ScmPrelude {
       case (ScmInt(x), ScmDouble(y))    => ScmDouble(x + y)
       case (ScmDouble(x), ScmInt(y))    => ScmDouble(x + y)
       case (ScmDouble(x), ScmDouble(y)) => ScmDouble(x + y)
-      case _ => EitherT.leftT(Exception("add: expected numbers"))
+      case _ => throw Exception("add: expected numbers")
     }
   }
 
@@ -45,7 +50,7 @@ object ScmPrelude {
       case (ScmInt(x), ScmDouble(y))    => ScmDouble(x * y)
       case (ScmDouble(x), ScmInt(y))    => ScmDouble(x * y)
       case (ScmDouble(x), ScmDouble(y)) => ScmDouble(x * y)
-      case _ => EitherT.leftT(Exception("mul: expected numbers"))
+      case _ => throw Exception("mul: expected numbers")
     }
   }
 
@@ -59,7 +64,7 @@ object ScmPrelude {
       case Seq(ScmInt(x), ScmDouble(y))    => ScmDouble(x - y)
       case Seq(ScmDouble(x), ScmInt(y))    => ScmDouble(x - y)
       case Seq(ScmDouble(x), ScmDouble(y)) => ScmDouble(x - y)
-      case _ => EitherT.leftT(Exception("sub: expected numbers"))
+      case _ => throw Exception("sub: expected numbers")
     }
   }
 
@@ -69,14 +74,14 @@ object ScmPrelude {
       case Seq(ScmInt(x), ScmDouble(y))    => ScmDouble(x / y)
       case Seq(ScmDouble(x), ScmInt(y))    => ScmDouble(x / y)
       case Seq(ScmDouble(x), ScmDouble(y)) => ScmDouble(x / y)
-      case _ => EitherT.leftT(Exception("div: expected numbers"))
+      case _ => throw Exception("div: expected numbers")
     }
   }
 
   def eq(xs: Seq[Exp]): Try[Exp] = Try {
     xs match {
       case Seq(x, y) => ScmBool(x == y)
-      case _         => EitherT.leftT(Exception("eq: expected 2 expressions"))
+      case _         => throw Exception("eq: expected 2 expressions")
     }
   }
 
@@ -86,7 +91,7 @@ object ScmPrelude {
       case Seq(ScmInt(x), ScmDouble(y))    => ScmBool(x < y)
       case Seq(ScmDouble(x), ScmInt(y))    => ScmBool(x < y)
       case Seq(ScmDouble(x), ScmDouble(y)) => ScmBool(x < y)
-      case _ => EitherT.leftT(Exception("lt: expected numbers"))
+      case _ => throw Exception("lt: expected numbers")
     }
   }
 
@@ -96,7 +101,7 @@ object ScmPrelude {
       case Seq(ScmInt(x), ScmDouble(y))    => ScmBool(x <= y)
       case Seq(ScmDouble(x), ScmInt(y))    => ScmBool(x <= y)
       case Seq(ScmDouble(x), ScmDouble(y)) => ScmBool(x <= y)
-      case _ => EitherT.leftT(Exception("le: expected numbers"))
+      case _ => throw Exception("le: expected numbers")
     }
   }
 
@@ -106,7 +111,7 @@ object ScmPrelude {
       case Seq(ScmInt(x), ScmDouble(y))    => ScmBool(x > y)
       case Seq(ScmDouble(x), ScmInt(y))    => ScmBool(x > y)
       case Seq(ScmDouble(x), ScmDouble(y)) => ScmBool(x > y)
-      case _ => EitherT.leftT(Exception("gt: expected numbers"))
+      case _ => throw Exception("gt: expected numbers")
     }
   }
 
@@ -116,28 +121,28 @@ object ScmPrelude {
       case Seq(ScmInt(x), ScmDouble(y))    => ScmBool(x >= y)
       case Seq(ScmDouble(x), ScmInt(y))    => ScmBool(x >= y)
       case Seq(ScmDouble(x), ScmDouble(y)) => ScmBool(x >= y)
-      case _ => EitherT.leftT(Exception("ge: expected numbers"))
+      case _ => throw Exception("ge: expected numbers")
     }
   }
 
   def car(xs: Seq[Exp]): Try[Exp] = Try {
     xs match {
       case Seq(Cons(car, _)) => car
-      case _                 => EitherT.leftT(Exception("car: expected a cons"))
+      case _                 => throw Exception("car: expected a cons")
     }
   }
 
   def cdr(xs: Seq[Exp]): Try[Exp] = Try {
     xs match {
       case Seq(Cons(_, cdr)) => cdr
-      case _                 => EitherT.leftT(Exception("cdr: expected a cons"))
+      case _                 => throw Exception("cdr: expected a cons")
     }
   }
 
   def cons(xs: Seq[Exp]): Try[Exp] = Try {
     xs match {
       case Seq(x, y) => Cons(car = x, cdr = y)
-      case _         => EitherT.leftT(Exception("cons: expected 2 expressions"))
+      case _         => throw Exception("cons: expected 2 expressions")
     }
   }
 
